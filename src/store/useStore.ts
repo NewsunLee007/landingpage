@@ -10,6 +10,7 @@ export interface AppItem {
   tags: string[];
   iconName: string; // store icon name to avoid storing React nodes
   imageUrl?: string; // Optional image URL for the card
+  isPrivate?: boolean; // Whether the app requires a password
 }
 
 export interface Article {
@@ -95,12 +96,13 @@ const initialApps: AppItem[] = [
   {
     id: 'display01',
     title: 'Display 01',
-    description: '前端交互与创意展示网页 01。',
+    description: '前端交互与创意展示网页 01（需要访问密码）。',
     url: 'https://display01.newsunenglish.com/',
     category: '综合展示',
-    tags: ['前端', 'UI/UX'],
+    tags: ['前端', '私密'],
     iconName: 'Layout',
-    imageUrl: 'https://p.ipic.vip/zaas43.jpg'
+    imageUrl: 'https://p.ipic.vip/zaas43.jpg',
+    isPrivate: true
   },
   {
     id: 'display02',
@@ -115,12 +117,13 @@ const initialApps: AppItem[] = [
   {
     id: 'display03',
     title: 'Display 03',
-    description: '前端交互与创意展示网页 03。',
+    description: '前端交互与创意展示网页 03（需要访问密码）。',
     url: 'https://display3.newsunenglish.com/',
     category: '综合展示',
-    tags: ['前端', 'UI/UX'],
+    tags: ['前端', '私密'],
     iconName: 'Layout',
-    imageUrl: 'https://p.ipic.vip/4hblep.jpg'
+    imageUrl: 'https://p.ipic.vip/4hblep.jpg',
+    isPrivate: true
   }
 ];
 
@@ -177,7 +180,7 @@ export const useStore = create<StoreState>()(
       })),
     }),
     {
-      name: 'newsun-storage-v5', // Changed storage name to force cache reset
+      name: 'newsun-storage-v6', // Changed storage name to force cache reset
     }
   )
 );

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, BookOpen, PenTool, LayoutTemplate, Coffee, Sparkles, Mail, Github, KeyRound, ExternalLink } from 'lucide-react';
+import { ArrowRight, BookOpen, PenTool, LayoutTemplate, Coffee, Sparkles, Mail, Github, KeyRound, ExternalLink, Lock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import type { AppItem } from '../store/useStore';
@@ -70,11 +70,24 @@ const apiProviders = [
 function AppCard({ app, index }: { app: AppItem, index: number }) {
   const Icon = IconMap[app.iconName] || Sparkles;
 
+  const handleClick = (e: React.MouseEvent) => {
+    if (app.isPrivate) {
+      e.preventDefault();
+      const pwd = window.prompt('此内容包含未公开的设计与创意，请输入访问密码 (提示：102030)：');
+      if (pwd === '102030') {
+        window.open(app.url, '_blank', 'noopener,noreferrer');
+      } else if (pwd !== null) {
+        alert('密码错误，暂无访问权限。');
+      }
+    }
+  };
+
   return (
     <motion.a
       href={app.url}
       target="_blank"
       rel="noopener noreferrer"
+      onClick={handleClick}
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
@@ -85,22 +98,28 @@ function AppCard({ app, index }: { app: AppItem, index: number }) {
       {app.imageUrl && (
         <div className="h-48 w-full overflow-hidden bg-stone-100 relative">
           <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors z-10 duration-500"></div>
+          {app.isPrivate && (
+            <div className="absolute top-4 right-4 z-20 bg-black/40 backdrop-blur-md text-white px-3 py-1.5 rounded-full flex items-center gap-1.5 text-xs font-medium border border-white/10">
+              <Lock className="w-3 h-3" />
+              <span>私密</span>
+            </div>
+          )}
           <img 
             src={app.imageUrl} 
             alt={app.title} 
-            className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 ease-out"
+            className={`w-full h-full object-cover transform transition-transform duration-700 ease-out ${app.isPrivate ? 'blur-sm group-hover:blur-0 scale-110 group-hover:scale-105' : 'group-hover:scale-105'}`}
           />
         </div>
       )}
       
-      <div className="p-8 flex-grow flex flex-col">
+      <div className="p-8 flex-grow flex flex-col relative">
         <div className="flex items-start justify-between mb-6">
           <div className="w-12 h-12 rounded-2xl bg-stone-50 flex items-center justify-center text-stone-700 group-hover:bg-[#E8F0EE] group-hover:text-[#2A6049] transition-colors duration-500 shadow-sm">
-            <Icon className="w-5 h-5" />
+            {app.isPrivate ? <Lock className="w-5 h-5" /> : <Icon className="w-5 h-5" />}
           </div>
           <div className="flex gap-2">
             {app.tags.slice(0, 2).map(tag => (
-              <span key={tag} className="text-[11px] tracking-wide font-medium px-3 py-1 bg-stone-50 text-stone-500 rounded-full border border-stone-100/50">
+              <span key={tag} className={`text-[11px] tracking-wide font-medium px-3 py-1 rounded-full border ${tag === '私密' ? 'bg-amber-50 text-amber-600 border-amber-200/50' : 'bg-stone-50 text-stone-500 border-stone-100/50'}`}>
                 {tag}
               </span>
             ))}
@@ -112,8 +131,8 @@ function AppCard({ app, index }: { app: AppItem, index: number }) {
         <p className="text-stone-500 text-sm leading-relaxed mb-8 flex-grow font-light">
           {app.description}
         </p>
-        <div className="flex items-center text-sm font-medium text-stone-400 group-hover:text-[#2A6049] transition-colors duration-500">
-          探索工具 
+        <div className="flex items-center text-sm font-medium text-stone-400 group-hover:text-[#2A6049] transition-colors duration-500 mt-auto">
+          {app.isPrivate ? '输入密码访问' : '探索工具'} 
           <ArrowRight className="w-4 h-4 ml-2 transform group-hover:translate-x-1 transition-transform duration-500" />
         </div>
       </div>

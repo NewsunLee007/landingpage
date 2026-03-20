@@ -28,8 +28,8 @@ function AppCard({ app, index }: { app: AppItem, index: number }) {
   const handleClick = (e: React.MouseEvent) => {
     if (app.isPrivate) {
       e.preventDefault();
-      const pwd = window.prompt('此内容包含未公开的设计与创意，请输入访问密码 (提示：102030)：');
-      if (pwd === '102030') {
+      const pwd = window.prompt('此内容包含未公开的设计与创意，请输入访问密码：');
+      if (pwd === '123456') {
         window.open(app.url, '_blank', 'noopener,noreferrer');
       } else if (pwd !== null) {
         alert('密码错误，暂无访问权限。');

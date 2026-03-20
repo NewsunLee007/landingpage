@@ -1,13 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useStore } from '../store/useStore';
 import type { AppItem, Article } from '../store/useStore';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { ArrowLeft, Plus, Trash2, Edit2, Save, LogOut } from 'lucide-react';
 import { isDbConfigured } from '../services/db';
 
 export default function Admin() {
-  const navigate = useNavigate();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => localStorage.getItem('newsun_admin_auth') === 'true');
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
 
@@ -19,14 +18,6 @@ export default function Admin() {
 
   const [isEditingArticle, setIsEditingArticle] = useState(false);
   const [currentArticle, setCurrentArticle] = useState<Partial<Article>>({});
-
-  useEffect(() => {
-    // 简单的本地验证（实际生产环境中应结合 LeanCloud User 进行验证）
-    const authStatus = localStorage.getItem('newsun_admin_auth');
-    if (authStatus === 'true') {
-      setIsAuthenticated(true);
-    }
-  }, []);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();

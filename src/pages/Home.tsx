@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, BookOpen, PenTool, LayoutTemplate, Coffee, Sparkles, Mail, Github, KeyRound, ExternalLink, Lock } from 'lucide-react';
+import { ArrowRight, BookOpen, PenTool, LayoutTemplate, Coffee, Sparkles, Mail, KeyRound, Lock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import type { AppItem } from '../store/useStore';
@@ -21,51 +21,6 @@ const IconMap: Record<string, React.ElementType> = {
   GraduationCap: BookOpen, 
   Globe: PenTool
 };
-
-const apiProviders = [
-  {
-    name: 'DeepSeek (深度求索)',
-    description: '当前极具性价比的国产开源之光，推理能力强，适合日常教学文本处理。',
-    url: 'https://platform.deepseek.com/api_keys',
-    tags: ['国产推荐', '性价比'],
-    steps: ['注册/登录 DeepSeek 开放平台', '左侧菜单进入 "API Keys"', '点击 "创建 API Key" 并妥善保存']
-  },
-  {
-    name: 'Zhipu GLM (智谱清言)',
-    description: '国内老牌大模型，逻辑推理与长文本能力优秀，接口稳定。',
-    url: 'https://open.bigmodel.cn/login?redirect=%2Fusercenter%2Fproj-mgmt%2Fapikeys',
-    tags: ['国产推荐', '稳定可靠'],
-    steps: ['登录智谱 AI 开放平台', '进入 "API Keys" 管理页面', '点击 "添加新的 API Key"']
-  },
-  {
-    name: 'Moonshot AI (Kimi)',
-    description: '以超长上下文窗口著称，非常适合处理长篇英文阅读理解或整本书籍。',
-    url: 'https://platform.moonshot.cn/console/api-keys',
-    tags: ['国产推荐', '超长文本'],
-    steps: ['登录 Moonshot 开发者平台', '点击侧边栏 "API Key 管理"', '新建并复制你的密钥']
-  },
-  {
-    name: 'Alibaba Qwen (通义千问)',
-    description: '阿里云出品的强大开源模型系列，功能全面。',
-    url: 'https://dashscope.console.aliyun.com/apiKey',
-    tags: ['国产推荐', '全能型'],
-    steps: ['登录阿里云百炼控制台', '进入 "API-KEY 管理"', '创建或查看已有的 API-KEY']
-  },
-  {
-    name: 'Google Gemini',
-    description: '谷歌官方大模型，免费额度对开发者非常友好。',
-    url: 'https://aistudio.google.com/app/apikey',
-    tags: ['国际模型', '需特殊网络'],
-    steps: ['登录 Google AI Studio', '点击 "Get API key"', '创建并复制密钥']
-  },
-  {
-    name: 'OpenAI (国际版)',
-    description: '行业标杆 ChatGPT 的底层 API，功能最强大，但注册门槛较高。',
-    url: 'https://platform.openai.com/api-keys',
-    tags: ['国际模型', '需特殊网络'],
-    steps: ['登录 OpenAI Platform', '导航至 "API keys" 页面', '点击 "Create new secret key"']
-  }
-];
 
 function AppCard({ app, index }: { app: AppItem, index: number }) {
   const Icon = IconMap[app.iconName] || Sparkles;

@@ -33,6 +33,13 @@ const apiProviders = [
     steps: ['登录阿里云百炼控制台', '进入 "API-KEY 管理"', '创建或查看已有的 API-KEY']
   },
   {
+    name: 'Xiaomi MiMo (小米)',
+    description: '小米新一代开源模型，支持 OpenAI 兼容调用，接入门槛低。',
+    url: 'https://platform.xiaomimimo.com/',
+    tags: ['国产推荐', 'OpenAI 兼容'],
+    steps: ['登录 Xiaomi MiMo 开放平台并进入 Console', '在左侧打开 "API-Keys" 并创建新的 API Key', 'Base URL 使用 https://api.xiaomimimo.com，模型示例 mimo-v2-flash']
+  },
+  {
     name: 'Google Gemini',
     description: '谷歌官方大模型，免费额度对开发者非常友好。',
     url: 'https://aistudio.google.com/app/apikey',

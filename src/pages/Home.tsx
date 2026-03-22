@@ -303,6 +303,55 @@ export default function Home() {
                   </div>
                 </motion.div>
               </Link>
+              <motion.a
+                href="https://dealexcel.newsunenglish.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                whileHover={{ y: -4 }}
+                className="group flex flex-col bg-white rounded-[2rem] border border-stone-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.08)] transition-all duration-500 overflow-hidden h-full"
+              >
+                <div className="h-48 w-full overflow-hidden bg-stone-100 relative">
+                  <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors z-10 duration-500"></div>
+                  <img
+                    src="https://p.ipic.vip/6f2zhk.jpg"
+                    alt="Excel 拆分与合并"
+                    onError={(event) => {
+                      event.currentTarget.onerror = null;
+                      event.currentTarget.src = 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?q=80&w=1000&auto=format&fit=crop';
+                    }}
+                    className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 ease-out"
+                  />
+                </div>
+
+                <div className="p-8 flex-grow flex flex-col">
+                  <div className="flex items-start justify-between mb-6">
+                    <div className="w-12 h-12 rounded-2xl bg-stone-50 flex items-center justify-center text-stone-700 group-hover:bg-[#E8F0EE] group-hover:text-[#2A6049] transition-colors duration-500 shadow-sm">
+                      <LayoutTemplate className="w-5 h-5" />
+                    </div>
+                    <div className="flex gap-2">
+                      <span className="text-[11px] tracking-wide font-medium px-3 py-1 bg-stone-50 text-stone-500 rounded-full border border-stone-100/50">
+                        工具
+                      </span>
+                      <span className="text-[11px] tracking-wide font-medium px-3 py-1 bg-stone-50 text-stone-500 rounded-full border border-stone-100/50">
+                        Excel
+                      </span>
+                    </div>
+                  </div>
+                  <h3 className="text-xl font-bold text-stone-800 mb-3 group-hover:text-[#2A6049] transition-colors duration-500 font-serif">
+                    Excel 拆分与合并（浏览器版）
+                  </h3>
+                  <p className="text-stone-500 text-sm leading-relaxed mb-8 flex-grow font-light">
+                    在线处理 .xlsx / .xlsm / .xls，支持按列拆分、多文件合并、去重与冲突报告导出。
+                  </p>
+                  <div className="flex items-center text-sm font-medium text-stone-400 group-hover:text-[#2A6049] transition-colors duration-500 mt-auto">
+                    打开工具页面
+                    <ArrowRight className="w-4 h-4 ml-2 transform group-hover:translate-x-1 transition-transform duration-500" />
+                  </div>
+                </div>
+              </motion.a>
             </div>
           </div>
         </section>

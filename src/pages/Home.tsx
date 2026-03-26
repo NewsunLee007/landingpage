@@ -62,6 +62,10 @@ function AppCard({ app, index }: { app: AppItem, index: number }) {
           <img 
             src={app.imageUrl} 
             alt={app.title} 
+            onError={(event) => {
+              event.currentTarget.onerror = null;
+              event.currentTarget.src = 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=1000&auto=format&fit=crop';
+            }}
             className={`w-full h-full object-cover transform transition-transform duration-700 ease-out ${app.isPrivate ? 'blur-sm group-hover:blur-0 scale-110 group-hover:scale-105' : 'group-hover:scale-105'}`}
           />
         </div>

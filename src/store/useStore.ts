@@ -74,6 +74,16 @@ const initialApps: AppItem[] = [
     imageUrl: 'https://p.ipic.vip/ls9q8u.jpg'
   },
   {
+    id: 'teaching-plan',
+    title: '智能备课',
+    description: '三学联网智能备课系统，面向专业教育场景的备课辅助平台。',
+    url: 'https://teaching-plan.newsunenglish.com/',
+    category: '智能教学辅助',
+    tags: ['备课', 'AI'],
+    iconName: 'GraduationCap',
+    imageUrl: 'https://p.ipic.vip/jexpu6.jpg'
+  },
+  {
     id: 'ems',
     title: 'EMS 数据中心',
     description: '数字化排考系统，自动化管理学年、学期、考试场次与学科安排。',

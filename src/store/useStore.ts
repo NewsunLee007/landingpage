@@ -104,6 +104,16 @@ const initialApps: AppItem[] = [
     imageUrl: 'https://p.ipic.vip/u7kolm.jpg'
   },
   {
+    id: 'monthlysum',
+    title: '月度自评生成器',
+    description: '内部访问验证后快速生成月度自评内容，提升教务总结效率。',
+    url: 'https://monthlysum.newsunenglish.com/',
+    category: '教务与管理',
+    tags: ['教务', '月度总结'],
+    iconName: 'Layout',
+    imageUrl: 'https://p.ipic.vip/xtxtv3.jpg'
+  },
+  {
     id: 'display01',
     title: 'Display 01',
     description: '前端交互与创意展示网页 01（需要访问密码）。',

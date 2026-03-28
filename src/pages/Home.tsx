@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, BookOpen, PenTool, LayoutTemplate, Coffee, Sparkles, Mail, KeyRound, Lock } from 'lucide-react';
+import { ArrowRight, BookOpen, PenTool, LayoutTemplate, Coffee, Sparkles, Mail, KeyRound, Lock, Search, LayoutGrid, List } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import type { AppItem } from '../store/useStore';
@@ -19,11 +19,31 @@ const IconMap: Record<string, React.ElementType> = {
   Code: LayoutTemplate, 
   Layout: LayoutTemplate, 
   GraduationCap: BookOpen, 
-  Globe: PenTool
+  Globe: PenTool,
+  Sparkles,
+  KeyRound
 };
 
+const CATEGORY_LABEL_MAP: Record<string, string> = {
+  智能教学辅助: '教学AI工具',
+  教务与管理: '教务管理',
+  综合展示: '创意实验'
+};
+
+const TOOL_CATEGORIES = ['全部工具', '教学AI工具', '教务管理', '创意实验'];
+
+function getAppVisualIconName(app: AppItem): string {
+  if (app.iconName && app.iconName !== 'Layout') {
+    return app.iconName;
+  }
+  const iconPool = ['Layout', 'Sparkles', 'GraduationCap', 'Globe', 'KeyRound'];
+  const hash = app.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  return iconPool[hash % iconPool.length];
+}
+
 function AppCard({ app, index }: { app: AppItem, index: number }) {
-  const Icon = IconMap[app.iconName] || Sparkles;
+  const iconName = getAppVisualIconName(app);
+  const Icon = IconMap[iconName] || Sparkles;
 
   const handleClick = (e: React.MouseEvent) => {
     if (app.isPrivate) {
@@ -90,10 +110,52 @@ function AppCard({ app, index }: { app: AppItem, index: number }) {
         <p className="text-stone-500 text-sm leading-relaxed mb-8 flex-grow font-light">
           {app.description}
         </p>
-        <div className="flex items-center text-sm font-medium text-stone-400 group-hover:text-[#2A6049] transition-colors duration-500 mt-auto">
-          {app.isPrivate ? '输入密码访问' : '探索工具'} 
-          <ArrowRight className="w-4 h-4 ml-2 transform group-hover:translate-x-1 transition-transform duration-500" />
+      </div>
+    </motion.a>
+  );
+}
+
+function AppListItem({ app, index }: { app: AppItem, index: number }) {
+  const iconName = getAppVisualIconName(app);
+  const Icon = IconMap[iconName] || Sparkles;
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (app.isPrivate) {
+      e.preventDefault();
+      const pwd = window.prompt('此内容包含未公开的设计与创意，请输入访问密码：');
+      if (pwd === '123456') {
+        window.open(app.url, '_blank', 'noopener,noreferrer');
+      } else if (pwd !== null) {
+        alert('密码错误，暂无访问权限。');
+      }
+    }
+  };
+
+  return (
+    <motion.a
+      href={app.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={handleClick}
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ delay: index * 0.04, duration: 0.45 }}
+      className="group flex items-center gap-4 md:gap-6 bg-white rounded-2xl border border-stone-100 px-4 py-4 md:px-6 md:py-5 hover:border-[#DDEAE4] hover:shadow-[0_8px_24px_-6px_rgba(0,0,0,0.06)] transition-all duration-300"
+    >
+      <div className="w-12 h-12 rounded-xl bg-stone-50 flex items-center justify-center text-stone-700 group-hover:bg-[#E8F0EE] group-hover:text-[#2A6049] transition-colors flex-shrink-0">
+        {app.isPrivate ? <Lock className="w-5 h-5" /> : <Icon className="w-5 h-5" />}
+      </div>
+      <div className="min-w-0 flex-grow">
+        <div className="flex items-center gap-2 flex-wrap mb-1.5">
+          <h3 className="text-base md:text-lg font-bold text-stone-800 font-serif truncate">{app.title}</h3>
+          {app.tags.slice(0, 2).map(tag => (
+            <span key={tag} className={`text-[11px] px-2.5 py-0.5 rounded-full border ${tag === '私密' ? 'bg-amber-50 text-amber-600 border-amber-200/50' : 'bg-stone-50 text-stone-500 border-stone-100/50'}`}>
+              {tag}
+            </span>
+          ))}
         </div>
+        <p className="text-sm text-stone-500 font-light leading-relaxed line-clamp-2">{app.description}</p>
       </div>
     </motion.a>
   );
@@ -102,13 +164,62 @@ function AppCard({ app, index }: { app: AppItem, index: number }) {
 export default function Home() {
   const { apps, articles } = useStore();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [activeCategory, setActiveCategory] = useState<string>('全部');
+  const [activeCategory, setActiveCategory] = useState<string>('全部工具');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [globalView, setGlobalView] = useState<'card' | 'list'>('card');
 
-  const categories = ['全部', ...Array.from(new Set(apps.map(app => app.category)))];
+  const categoryCounts = useMemo(() => {
+    const counts = TOOL_CATEGORIES.reduce<Record<string, number>>((acc, key) => {
+      acc[key] = 0;
+      return acc;
+    }, {});
+    apps.forEach((app) => {
+      const mapped = CATEGORY_LABEL_MAP[app.category] || app.category;
+      if (counts[mapped] !== undefined) counts[mapped] += 1;
+      counts['全部工具'] += 1;
+    });
+    return counts;
+  }, [apps]);
 
-  const filteredApps = activeCategory === '全部' 
-    ? apps 
-    : apps.filter(app => app.category === activeCategory);
+  const filteredApps = useMemo(() => {
+    const keyword = searchQuery.trim().toLowerCase();
+    return apps.filter((app) => {
+      const mappedCategory = CATEGORY_LABEL_MAP[app.category] || app.category;
+      const categoryMatched = activeCategory === '全部工具' || mappedCategory === activeCategory;
+      if (!categoryMatched) return false;
+      if (!keyword) return true;
+      return `${app.title} ${app.description} ${mappedCategory} ${app.tags.join(' ')}`.toLowerCase().includes(keyword);
+    });
+  }, [apps, activeCategory, searchQuery]);
+
+  const techShares = [
+    {
+      id: 'api-hub',
+      title: '驱动 AI 的“钥匙”',
+      summary: '主流大模型（DeepSeek、Kimi、OpenAI 等）API Key 免费申请与接入指南。',
+      imageUrl: 'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?q=80&w=1000&auto=format&fit=crop',
+      tags: ['指南', 'AI'],
+      internalPath: '/api-hub'
+    },
+    {
+      id: 'excel-split-merge',
+      title: 'Excel 拆分与合并（浏览器版）',
+      summary: '在线处理 .xlsx / .xlsm / .xls，支持按列拆分、多文件合并、去重与冲突报告导出。',
+      imageUrl: 'https://p.ipic.vip/6f2zhk.jpg',
+      tags: ['工具', 'Excel'],
+      href: 'https://dealexcel.newsunenglish.com',
+      fallbackImage: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?q=80&w=1000&auto=format&fit=crop'
+    },
+    {
+      id: 'html-runner-pro',
+      title: 'HTML 运行器 Pro',
+      summary: '支持实时预览与导出，提供清晰度倍数与图片质量调节，便于快速生成高质量页面截图。',
+      imageUrl: 'https://p.ipic.vip/gb1gln.jpg',
+      tags: ['工具', 'HTML'],
+      href: 'https://htmlrunner.newsunenglish.com/',
+      fallbackImage: 'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?q=80&w=1000&auto=format&fit=crop'
+    }
+  ];
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -137,14 +248,22 @@ export default function Home() {
             <div className="flex items-center gap-3">
               <span className="font-serif font-bold text-xl tracking-tight text-stone-800 drop-shadow-sm">Newsun.</span>
             </div>
-              <div className="hidden md:flex items-center space-x-8">
-                <button onClick={() => scrollToSection('about')} className="text-sm font-medium text-stone-600 hover:text-stone-900 transition-colors drop-shadow-sm">关于我</button>
-                <button onClick={() => scrollToSection('tools')} className="text-sm font-medium text-stone-600 hover:text-stone-900 transition-colors drop-shadow-sm">工具与创作</button>
+            <div className="hidden md:flex items-center space-x-8">
+              <button onClick={() => scrollToSection('about')} className="text-sm font-medium text-stone-600 hover:text-stone-900 transition-colors drop-shadow-sm">关于我</button>
+              <button onClick={() => scrollToSection('tools')} className="text-sm font-medium text-stone-600 hover:text-stone-900 transition-colors drop-shadow-sm">AI工具</button>
               <button onClick={() => scrollToSection('tech-share')} className="text-sm font-medium text-stone-600 hover:text-[#2A6049] transition-colors drop-shadow-sm flex items-center gap-1.5">
                 技术分享
               </button>
               <button onClick={() => scrollToSection('writing')} className="text-sm font-medium text-stone-600 hover:text-stone-900 transition-colors drop-shadow-sm">随笔动态</button>
-              </div>
+            </div>
+          </div>
+          <div className="md:hidden pb-3 overflow-x-auto">
+            <div className="flex items-center gap-2">
+              <button onClick={() => scrollToSection('about')} className="px-3 py-1.5 rounded-lg text-xs font-medium text-stone-600 bg-white/80 border border-stone-200/70 whitespace-nowrap">关于我</button>
+              <button onClick={() => scrollToSection('tools')} className="px-3 py-1.5 rounded-lg text-xs font-medium text-stone-600 bg-white/80 border border-stone-200/70 whitespace-nowrap">AI工具</button>
+              <button onClick={() => scrollToSection('tech-share')} className="px-3 py-1.5 rounded-lg text-xs font-medium text-stone-600 bg-white/80 border border-stone-200/70 whitespace-nowrap">技术分享</button>
+              <button onClick={() => scrollToSection('writing')} className="px-3 py-1.5 rounded-lg text-xs font-medium text-stone-600 bg-white/80 border border-stone-200/70 whitespace-nowrap">随笔动态</button>
+            </div>
           </div>
         </div>
       </nav>
@@ -205,50 +324,72 @@ export default function Home() {
             </motion.div>
           </div>
         </section>
-
-        {/* Tools Section */}
         <section id="tools" className="py-24 px-6 lg:px-8 relative bg-stone-50/30">
           <div className="max-w-6xl mx-auto">
-            <div className="mb-12 text-center md:text-left flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
               <div>
-                <h2 className="text-3xl md:text-4xl font-bold text-stone-800 mb-4 font-serif">工具与创作</h2>
+                <h2 className="text-3xl md:text-4xl font-bold text-stone-800 mb-4 font-serif">AI工具</h2>
                 <p className="text-stone-500 text-lg font-light">为英语学习和日常教学打造的数字脚手架</p>
               </div>
-              
-              {/* Category Tabs */}
-              <div className="flex flex-wrap gap-2 justify-center md:justify-end">
-                {categories.map(category => (
-                  <button
-                    key={category}
-                    onClick={() => setActiveCategory(category)}
-                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
-                      activeCategory === category 
-                        ? 'bg-[#2A6049] text-white shadow-md shadow-[#2A6049]/20' 
-                        : 'bg-white text-stone-500 hover:bg-stone-100 border border-stone-200/50'
-                    }`}
-                  >
-                    {category}
-                  </button>
-                ))}
+            </div>
+            <div className="bg-white/70 border border-stone-200/60 rounded-2xl p-4 md:p-5 mb-8 shadow-[0_8px_24px_-14px_rgba(0,0,0,0.1)]">
+              <div className="flex flex-col lg:flex-row gap-4 lg:items-center lg:justify-between">
+                <div className="relative w-full lg:max-w-md">
+                  <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="搜索工具名、标签、分类..."
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-stone-200 bg-white text-sm text-stone-700 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-[#2A6049]/20 focus:border-[#2A6049]/40 transition-all"
+                  />
+                </div>
+                <div className="flex items-center gap-2 overflow-x-auto">
+                  {TOOL_CATEGORIES.map(category => (
+                    <button
+                      key={category}
+                      onClick={() => setActiveCategory(category)}
+                      className={`px-3 py-2 rounded-xl whitespace-nowrap text-sm font-medium transition-all duration-300 ${
+                        activeCategory === category
+                          ? 'bg-[#2A6049] text-white shadow-md shadow-[#2A6049]/20'
+                          : 'bg-white text-stone-500 hover:bg-stone-100 border border-stone-200/50'
+                      }`}
+                    >
+                      {category} ({categoryCounts[category] || 0})
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
-
-            <motion.div layout className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <AnimatePresence mode="popLayout">
+            {globalView === 'card' ? (
+              <motion.div layout className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <AnimatePresence mode="popLayout">
+                  {filteredApps.map((app, index) => (
+                    <motion.div
+                      key={app.id}
+                      layout
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <AppCard app={app} index={index} />
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </motion.div>
+            ) : (
+              <div className="space-y-3">
                 {filteredApps.map((app, index) => (
-                  <motion.div
-                    key={app.id}
-                    layout
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <AppCard app={app} index={index} />
-                  </motion.div>
+                  <AppListItem key={app.id} app={app} index={index} />
                 ))}
-              </AnimatePresence>
-            </motion.div>
+              </div>
+            )}
+            {filteredApps.length === 0 && (
+              <div className="mt-10 text-center py-12 border border-dashed border-stone-200 rounded-3xl bg-white/40 text-stone-400 font-light">
+                未找到匹配结果，试试更换分类或关键词。
+              </div>
+            )}
           </div>
         </section>
 
@@ -261,151 +402,148 @@ export default function Home() {
               <h2 className="text-3xl md:text-4xl font-bold text-stone-800 mb-4 font-serif">技术分享</h2>
               <p className="text-stone-500 text-lg font-light">关于前沿技术与教育结合的实践指南</p>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <Link to="/api-hub">
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  whileHover={{ y: -4 }}
-                  className="group flex flex-col bg-white rounded-[2rem] border border-stone-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.08)] transition-all duration-500 overflow-hidden h-full"
-                >
-                  <div className="h-48 w-full overflow-hidden bg-stone-100 relative">
-                    <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors z-10 duration-500"></div>
-                    <img 
-                      src="https://images.unsplash.com/photo-1620712943543-bcc4688e7485?q=80&w=1000&auto=format&fit=crop" 
-                      alt="AI Key Guide" 
-                      className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 ease-out"
-                    />
-                  </div>
-                  
-                  <div className="p-8 flex-grow flex flex-col">
-                    <div className="flex items-start justify-between mb-6">
-                      <div className="w-12 h-12 rounded-2xl bg-stone-50 flex items-center justify-center text-stone-700 group-hover:bg-[#E8F0EE] group-hover:text-[#2A6049] transition-colors duration-500 shadow-sm">
-                        <KeyRound className="w-5 h-5" />
+            {globalView === 'card' ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {techShares.map((item, index) => (
+                  item.internalPath ? (
+                    <Link to={item.internalPath} key={item.id}>
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        whileHover={{ y: -4 }}
+                        className="group flex flex-col bg-white rounded-[2rem] border border-stone-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.08)] transition-all duration-500 overflow-hidden h-full"
+                      >
+                        <div className="h-48 w-full overflow-hidden bg-stone-100 relative">
+                          <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors z-10 duration-500"></div>
+                          <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 ease-out" />
+                        </div>
+                        <div className="p-8 flex-grow flex flex-col">
+                          <div className="flex items-start justify-between mb-6">
+                            <div className="w-12 h-12 rounded-2xl bg-stone-50 flex items-center justify-center text-stone-700 group-hover:bg-[#E8F0EE] group-hover:text-[#2A6049] transition-colors duration-500 shadow-sm">
+                              <KeyRound className="w-5 h-5" />
+                            </div>
+                            <div className="flex gap-2">
+                              {item.tags.map((tag) => (
+                                <span key={tag} className="text-[11px] tracking-wide font-medium px-3 py-1 bg-stone-50 text-stone-500 rounded-full border border-stone-100/50">
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                          <h3 className="text-xl font-bold text-stone-800 mb-3 group-hover:text-[#2A6049] transition-colors duration-500 font-serif">{item.title}</h3>
+                          <p className="text-stone-500 text-sm leading-relaxed mb-8 flex-grow font-light">{item.summary}</p>
+                          <div className="flex items-center text-sm font-medium text-stone-400 group-hover:text-[#2A6049] transition-colors duration-500 mt-auto">
+                            查看完整指南
+                            <ArrowRight className="w-4 h-4 ml-2 transform group-hover:translate-x-1 transition-transform duration-500" />
+                          </div>
+                        </div>
+                      </motion.div>
+                    </Link>
+                  ) : (
+                    <motion.a
+                      key={item.id}
+                      href={item.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      initial={{ opacity: 0, y: 20 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      whileHover={{ y: -4 }}
+                      transition={{ delay: index * 0.03 }}
+                      className="group flex flex-col bg-white rounded-[2rem] border border-stone-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.08)] transition-all duration-500 overflow-hidden h-full"
+                    >
+                      <div className="h-48 w-full overflow-hidden bg-stone-100 relative">
+                        <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors z-10 duration-500"></div>
+                        <img
+                          src={item.imageUrl}
+                          alt={item.title}
+                          onError={(event) => {
+                            event.currentTarget.onerror = null;
+                            event.currentTarget.src = item.fallbackImage || '';
+                          }}
+                          className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 ease-out"
+                        />
                       </div>
-                      <div className="flex gap-2">
-                        <span className="text-[11px] tracking-wide font-medium px-3 py-1 bg-stone-50 text-stone-500 rounded-full border border-stone-100/50">
-                          指南
-                        </span>
-                        <span className="text-[11px] tracking-wide font-medium px-3 py-1 bg-stone-50 text-stone-500 rounded-full border border-stone-100/50">
-                          AI
-                        </span>
+                      <div className="p-8 flex-grow flex flex-col">
+                        <div className="flex items-start justify-between mb-6">
+                          <div className="w-12 h-12 rounded-2xl bg-stone-50 flex items-center justify-center text-stone-700 group-hover:bg-[#E8F0EE] group-hover:text-[#2A6049] transition-colors duration-500 shadow-sm">
+                            <LayoutTemplate className="w-5 h-5" />
+                          </div>
+                          <div className="flex gap-2">
+                            {item.tags.map((tag) => (
+                              <span key={tag} className="text-[11px] tracking-wide font-medium px-3 py-1 bg-stone-50 text-stone-500 rounded-full border border-stone-100/50">
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                        <h3 className="text-xl font-bold text-stone-800 mb-3 group-hover:text-[#2A6049] transition-colors duration-500 font-serif">{item.title}</h3>
+                        <p className="text-stone-500 text-sm leading-relaxed mb-8 flex-grow font-light">{item.summary}</p>
+                        <div className="flex items-center text-sm font-medium text-stone-400 group-hover:text-[#2A6049] transition-colors duration-500 mt-auto">
+                          打开工具页面
+                          <ArrowRight className="w-4 h-4 ml-2 transform group-hover:translate-x-1 transition-transform duration-500" />
+                        </div>
                       </div>
-                    </div>
-                    <h3 className="text-xl font-bold text-stone-800 mb-3 group-hover:text-[#2A6049] transition-colors duration-500 font-serif">
-                      驱动 AI 的“钥匙”
-                    </h3>
-                    <p className="text-stone-500 text-sm leading-relaxed mb-8 flex-grow font-light">
-                      主流大模型（DeepSeek、Kimi、OpenAI 等）API Key 免费申请与接入指南。
-                    </p>
-                    <div className="flex items-center text-sm font-medium text-stone-400 group-hover:text-[#2A6049] transition-colors duration-500 mt-auto">
-                      查看完整指南 
-                      <ArrowRight className="w-4 h-4 ml-2 transform group-hover:translate-x-1 transition-transform duration-500" />
-                    </div>
-                  </div>
-                </motion.div>
-              </Link>
-              <motion.a
-                href="https://dealexcel.newsunenglish.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                whileHover={{ y: -4 }}
-                className="group flex flex-col bg-white rounded-[2rem] border border-stone-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.08)] transition-all duration-500 overflow-hidden h-full"
-              >
-                <div className="h-48 w-full overflow-hidden bg-stone-100 relative">
-                  <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors z-10 duration-500"></div>
-                  <img
-                    src="https://p.ipic.vip/6f2zhk.jpg"
-                    alt="Excel 拆分与合并"
-                    onError={(event) => {
-                      event.currentTarget.onerror = null;
-                      event.currentTarget.src = 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?q=80&w=1000&auto=format&fit=crop';
-                    }}
-                    className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 ease-out"
-                  />
-                </div>
-
-                <div className="p-8 flex-grow flex flex-col">
-                  <div className="flex items-start justify-between mb-6">
-                    <div className="w-12 h-12 rounded-2xl bg-stone-50 flex items-center justify-center text-stone-700 group-hover:bg-[#E8F0EE] group-hover:text-[#2A6049] transition-colors duration-500 shadow-sm">
-                      <LayoutTemplate className="w-5 h-5" />
-                    </div>
-                    <div className="flex gap-2">
-                      <span className="text-[11px] tracking-wide font-medium px-3 py-1 bg-stone-50 text-stone-500 rounded-full border border-stone-100/50">
-                        工具
-                      </span>
-                      <span className="text-[11px] tracking-wide font-medium px-3 py-1 bg-stone-50 text-stone-500 rounded-full border border-stone-100/50">
-                        Excel
-                      </span>
-                    </div>
-                  </div>
-                  <h3 className="text-xl font-bold text-stone-800 mb-3 group-hover:text-[#2A6049] transition-colors duration-500 font-serif">
-                    Excel 拆分与合并（浏览器版）
-                  </h3>
-                  <p className="text-stone-500 text-sm leading-relaxed mb-8 flex-grow font-light">
-                    在线处理 .xlsx / .xlsm / .xls，支持按列拆分、多文件合并、去重与冲突报告导出。
-                  </p>
-                  <div className="flex items-center text-sm font-medium text-stone-400 group-hover:text-[#2A6049] transition-colors duration-500 mt-auto">
-                    打开工具页面
-                    <ArrowRight className="w-4 h-4 ml-2 transform group-hover:translate-x-1 transition-transform duration-500" />
-                  </div>
-                </div>
-              </motion.a>
-              <motion.a
-                href="https://htmlrunner.newsunenglish.com/"
-                target="_blank"
-                rel="noopener noreferrer"
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                whileHover={{ y: -4 }}
-                className="group flex flex-col bg-white rounded-[2rem] border border-stone-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.08)] transition-all duration-500 overflow-hidden h-full"
-              >
-                <div className="h-48 w-full overflow-hidden bg-stone-100 relative">
-                  <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors z-10 duration-500"></div>
-                  <img
-                    src="https://p.ipic.vip/gb1gln.jpg"
-                    alt="HTML 运行器 Pro"
-                    onError={(event) => {
-                      event.currentTarget.onerror = null;
-                      event.currentTarget.src = 'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?q=80&w=1000&auto=format&fit=crop';
-                    }}
-                    className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 ease-out"
-                  />
-                </div>
-
-                <div className="p-8 flex-grow flex flex-col">
-                  <div className="flex items-start justify-between mb-6">
-                    <div className="w-12 h-12 rounded-2xl bg-stone-50 flex items-center justify-center text-stone-700 group-hover:bg-[#E8F0EE] group-hover:text-[#2A6049] transition-colors duration-500 shadow-sm">
-                      <LayoutTemplate className="w-5 h-5" />
-                    </div>
-                    <div className="flex gap-2">
-                      <span className="text-[11px] tracking-wide font-medium px-3 py-1 bg-stone-50 text-stone-500 rounded-full border border-stone-100/50">
-                        工具
-                      </span>
-                      <span className="text-[11px] tracking-wide font-medium px-3 py-1 bg-stone-50 text-stone-500 rounded-full border border-stone-100/50">
-                        HTML
-                      </span>
-                    </div>
-                  </div>
-                  <h3 className="text-xl font-bold text-stone-800 mb-3 group-hover:text-[#2A6049] transition-colors duration-500 font-serif">
-                    HTML 运行器 Pro
-                  </h3>
-                  <p className="text-stone-500 text-sm leading-relaxed mb-8 flex-grow font-light">
-                    支持实时预览与导出，提供清晰度倍数与图片质量调节，便于快速生成高质量页面截图。
-                  </p>
-                  <div className="flex items-center text-sm font-medium text-stone-400 group-hover:text-[#2A6049] transition-colors duration-500 mt-auto">
-                    打开工具页面
-                    <ArrowRight className="w-4 h-4 ml-2 transform group-hover:translate-x-1 transition-transform duration-500" />
-                  </div>
-                </div>
-              </motion.a>
-            </div>
+                    </motion.a>
+                  )
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {techShares.map((item, index) => (
+                  item.internalPath ? (
+                    <Link to={item.internalPath} key={item.id}>
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ delay: index * 0.04, duration: 0.45 }}
+                        className="group flex items-center gap-4 md:gap-6 bg-white rounded-2xl border border-stone-100 px-4 py-4 md:px-6 md:py-5 hover:border-[#DDEAE4] hover:shadow-[0_8px_24px_-6px_rgba(0,0,0,0.06)] transition-all duration-300"
+                      >
+                        <div className="w-12 h-12 rounded-xl bg-stone-50 flex items-center justify-center text-stone-700 group-hover:bg-[#E8F0EE] group-hover:text-[#2A6049] transition-colors flex-shrink-0">
+                          <KeyRound className="w-5 h-5" />
+                        </div>
+                        <div className="min-w-0 flex-grow">
+                          <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                            <h3 className="text-base md:text-lg font-bold text-stone-800 font-serif truncate">{item.title}</h3>
+                            {item.tags.map((tag) => (
+                              <span key={tag} className="text-[11px] px-2.5 py-0.5 rounded-full border bg-stone-50 text-stone-500 border-stone-100/50">{tag}</span>
+                            ))}
+                          </div>
+                          <p className="text-sm text-stone-500 font-light leading-relaxed line-clamp-2">{item.summary}</p>
+                        </div>
+                      </motion.div>
+                    </Link>
+                  ) : (
+                    <motion.a
+                      key={item.id}
+                      href={item.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      initial={{ opacity: 0, y: 20 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: index * 0.04, duration: 0.45 }}
+                      className="group flex items-center gap-4 md:gap-6 bg-white rounded-2xl border border-stone-100 px-4 py-4 md:px-6 md:py-5 hover:border-[#DDEAE4] hover:shadow-[0_8px_24px_-6px_rgba(0,0,0,0.06)] transition-all duration-300"
+                    >
+                      <div className="w-12 h-12 rounded-xl bg-stone-50 flex items-center justify-center text-stone-700 group-hover:bg-[#E8F0EE] group-hover:text-[#2A6049] transition-colors flex-shrink-0">
+                        <LayoutTemplate className="w-5 h-5" />
+                      </div>
+                      <div className="min-w-0 flex-grow">
+                        <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                          <h3 className="text-base md:text-lg font-bold text-stone-800 font-serif truncate">{item.title}</h3>
+                          {item.tags.map((tag) => (
+                            <span key={tag} className="text-[11px] px-2.5 py-0.5 rounded-full border bg-stone-50 text-stone-500 border-stone-100/50">{tag}</span>
+                          ))}
+                        </div>
+                        <p className="text-sm text-stone-500 font-light leading-relaxed line-clamp-2">{item.summary}</p>
+                      </div>
+                    </motion.a>
+                  )
+                ))}
+              </div>
+            )}
           </div>
         </section>
 
@@ -417,45 +555,67 @@ export default function Home() {
               <p className="text-stone-500 text-lg font-light">关于语言教学的思考，以及产品更新日志</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {articles.length > 0 ? articles.map((article, index) => (
-                <Link 
-                  to={`/article/${article.id}`}
-                  key={article.id}
-                >
-                  <motion.div 
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: index * 0.1, duration: 0.6 }}
-                    className="group h-full rounded-[2rem] bg-white border border-stone-100 hover:border-[#E8F0EE] hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.06)] transition-all duration-500 cursor-pointer overflow-hidden flex flex-col"
-                  >
-                    {article.imageUrl && (
-                      <div className="h-48 w-full overflow-hidden bg-stone-100 relative">
-                        <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors z-10 duration-500"></div>
-                        <img 
-                          src={article.imageUrl} 
-                          alt={article.title} 
-                          className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 ease-out"
-                        />
-                      </div>
-                    )}
-                    <div className="p-8 flex flex-col flex-grow">
-                      <div className="text-stone-400 text-sm font-mono mb-4">{article.date}</div>
-                      <h3 className="text-xl font-bold text-stone-800 mb-3 group-hover:text-[#2A6049] transition-colors font-serif">{article.title}</h3>
-                      <p className="text-stone-500 leading-relaxed mb-6 font-light flex-grow">{article.summary}</p>
-                      <div className="text-[#2A6049] font-medium text-sm flex items-center mt-auto">
-                        阅读全文 <ArrowRight className="w-4 h-4 ml-1 transform group-hover:translate-x-1 transition-transform" />
-                      </div>
-                    </div>
-                  </motion.div>
-                </Link>
-              )) : (
-                <div className="col-span-full py-16 text-center text-stone-400 font-light border border-dashed border-stone-200 rounded-3xl">
-                  近期暂无更新。
+            {articles.length > 0 ? (
+              globalView === 'card' ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {articles.map((article, index) => (
+                    <Link to={`/article/${article.id}`} key={article.id}>
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ delay: index * 0.1, duration: 0.6 }}
+                        className="group h-full rounded-[2rem] bg-white border border-stone-100 hover:border-[#E8F0EE] hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.06)] transition-all duration-500 cursor-pointer overflow-hidden flex flex-col"
+                      >
+                        {article.imageUrl && (
+                          <div className="h-48 w-full overflow-hidden bg-stone-100 relative">
+                            <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors z-10 duration-500"></div>
+                            <img src={article.imageUrl} alt={article.title} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 ease-out" />
+                          </div>
+                        )}
+                        <div className="p-8 flex flex-col flex-grow">
+                          <div className="text-stone-400 text-sm font-mono mb-4">{article.date}</div>
+                          <h3 className="text-xl font-bold text-stone-800 mb-3 group-hover:text-[#2A6049] transition-colors font-serif">{article.title}</h3>
+                          <p className="text-stone-500 leading-relaxed mb-6 font-light flex-grow">{article.summary}</p>
+                          <div className="text-[#2A6049] font-medium text-sm flex items-center mt-auto">
+                            阅读全文 <ArrowRight className="w-4 h-4 ml-1 transform group-hover:translate-x-1 transition-transform" />
+                          </div>
+                        </div>
+                      </motion.div>
+                    </Link>
+                  ))}
                 </div>
-              )}
-            </div>
+              ) : (
+                <div className="space-y-3">
+                  {articles.map((article, index) => (
+                    <Link to={`/article/${article.id}`} key={article.id}>
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ delay: index * 0.04, duration: 0.45 }}
+                        className="group flex items-center gap-4 md:gap-6 bg-white rounded-2xl border border-stone-100 px-4 py-4 md:px-6 md:py-5 hover:border-[#DDEAE4] hover:shadow-[0_8px_24px_-6px_rgba(0,0,0,0.06)] transition-all duration-300"
+                      >
+                        <div className="w-12 h-12 rounded-xl bg-stone-50 flex items-center justify-center text-stone-700 group-hover:bg-[#E8F0EE] group-hover:text-[#2A6049] transition-colors flex-shrink-0">
+                          <BookOpen className="w-5 h-5" />
+                        </div>
+                        <div className="min-w-0 flex-grow">
+                          <div className="flex items-center gap-3 mb-1.5 flex-wrap">
+                            <h3 className="text-base md:text-lg font-bold text-stone-800 font-serif truncate">{article.title}</h3>
+                            <span className="text-xs text-stone-400 font-mono">{article.date}</span>
+                          </div>
+                          <p className="text-sm text-stone-500 font-light leading-relaxed line-clamp-2">{article.summary}</p>
+                        </div>
+                      </motion.div>
+                    </Link>
+                  ))}
+                </div>
+              )
+            ) : (
+              <div className="col-span-full py-16 text-center text-stone-400 font-light border border-dashed border-stone-200 rounded-3xl">
+                近期暂无更新。
+              </div>
+            )}
           </div>
         </section>
 
@@ -495,6 +655,24 @@ export default function Home() {
             </div>
           </div>
         </section>
+        <div className="fixed right-4 bottom-5 md:right-6 md:bottom-8 z-[70]">
+          <div className="bg-white/90 backdrop-blur-xl border border-stone-200/80 rounded-2xl p-1.5 shadow-[0_10px_24px_-12px_rgba(0,0,0,0.2)] flex items-center gap-1">
+            <button
+              onClick={() => setGlobalView('card')}
+              className={`px-3 py-2 rounded-xl text-xs md:text-sm font-medium inline-flex items-center gap-1.5 transition-colors ${globalView === 'card' ? 'bg-[#2A6049] text-white' : 'text-stone-600 hover:bg-stone-100'}`}
+            >
+              <LayoutGrid className="w-4 h-4" />
+              卡片
+            </button>
+            <button
+              onClick={() => setGlobalView('list')}
+              className={`px-3 py-2 rounded-xl text-xs md:text-sm font-medium inline-flex items-center gap-1.5 transition-colors ${globalView === 'list' ? 'bg-[#2A6049] text-white' : 'text-stone-600 hover:bg-stone-100'}`}
+            >
+              <List className="w-4 h-4" />
+              列表
+            </button>
+          </div>
+        </div>
       </main>
 
       {/* Footer */}

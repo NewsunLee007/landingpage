@@ -84,6 +84,16 @@ const initialApps: AppItem[] = [
     imageUrl: 'https://p.ipic.vip/jexpu6.jpg'
   },
   {
+    id: 'prompthub',
+    title: 'PromptHub',
+    description: 'AI 提示词共享平台，发现、分享、复用优质提示词，提升教学与办公效率。',
+    url: 'https://promt.newsunenglish.com/',
+    category: '智能教学辅助',
+    tags: ['提示词', '社区'],
+    iconName: 'Sparkles',
+    imageUrl: 'https://p.ipic.vip/ja8ayx.jpg'
+  },
+  {
     id: 'ems',
     title: 'EMS 数据中心',
     description: '数字化排考系统，自动化管理学年、学期、考试场次与学科安排。',

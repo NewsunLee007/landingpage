@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { ArrowLeft, KeyRound, ExternalLink, ShieldCheck, Zap } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useEffect } from 'react';
+import { Helmet } from 'react-helmet-async';
 
 const apiProviders = [
   {
@@ -61,13 +62,17 @@ export default function ApiHub() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] text-stone-800 font-sans selection:bg-[#E8F0EE] selection:text-[#2A6049]">
+    <div className="min-h-screen bg-[#FAFAFA] text-stone-800 font-sans selection:bg-[#E8F0EE] selection:text-[#2A6049] dark:bg-[#0F0F0F] dark:text-stone-200 dark:selection:bg-[#1a2e24] dark:selection:text-[#4A8069]">
+      <Helmet>
+        <title>API Key 申请指南 - Newsun</title>
+      </Helmet>
+
       {/* Navigation */}
-      <nav className="fixed w-full z-50 bg-white/60 backdrop-blur-2xl border-b border-stone-200/50 shadow-[0_4px_30px_-10px_rgba(0,0,0,0.05)] transition-all duration-300">
+      <nav className="fixed w-full z-50 bg-white/60 backdrop-blur-2xl border-b border-stone-200/50 shadow-[0_4px_30px_-10px_rgba(0,0,0,0.05)] transition-all duration-300 dark:bg-[#0F0F0F]/60 dark:border-stone-800/50">
         <div className="max-w-6xl mx-auto px-6 lg:px-8">
           <div className="flex items-center h-20">
-            <Link to="/" className="group flex items-center gap-2 text-stone-500 hover:text-stone-900 transition-colors">
-              <div className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center group-hover:bg-[#E8F0EE] group-hover:text-[#2A6049] transition-colors">
+            <Link to="/" className="group flex items-center gap-2 text-stone-500 hover:text-stone-900 transition-colors dark:text-stone-400 dark:hover:text-stone-100">
+              <div className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center group-hover:bg-[#E8F0EE] group-hover:text-[#2A6049] transition-colors dark:bg-stone-800 dark:group-hover:bg-[#1a2e24] dark:group-hover:text-[#4A8069]">
                 <ArrowLeft className="w-4 h-4" />
               </div>
               <span className="font-medium text-sm">返回首页</span>
@@ -82,7 +87,7 @@ export default function ApiHub() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="inline-flex items-center gap-2 mb-6 px-5 py-2 rounded-full bg-white border border-stone-200/80 text-[#2A6049] text-sm font-medium tracking-wide shadow-sm"
+            className="inline-flex items-center gap-2 mb-6 px-5 py-2 rounded-full bg-white border border-stone-200/80 text-[#2A6049] text-sm font-medium tracking-wide shadow-sm dark:bg-stone-900 dark:border-stone-700/80 dark:text-[#4A8069]"
           >
             <KeyRound className="w-4 h-4" />
             <span>技术分享：API Key 申请指南</span>
@@ -92,16 +97,16 @@ export default function ApiHub() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-4xl md:text-5xl lg:text-6xl font-bold text-stone-800 mb-8 font-serif leading-tight"
+            className="text-4xl md:text-5xl lg:text-6xl font-bold text-stone-800 mb-8 font-serif leading-tight dark:text-stone-100"
           >
-            驱动 AI 的“钥匙”
+            驱动 AI 的"钥匙"
           </motion.h1>
           
           <motion.p 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="text-lg md:text-xl text-stone-500 font-light leading-relaxed mb-12"
+            className="text-lg md:text-xl text-stone-500 font-light leading-relaxed mb-12 dark:text-stone-400"
           >
             许多前沿的教育辅助工具（如 Write Ascend 等）需要您提供自己的大模型 API Key 才能运行。不用担心，获取它们非常简单。请选择下方任意一个您喜欢的模型，点击前往官方后台免费申请。
           </motion.p>
@@ -110,12 +115,12 @@ export default function ApiHub() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
-            className="flex flex-wrap justify-center gap-6 text-sm text-stone-600 font-medium"
+            className="flex flex-wrap justify-center gap-6 text-sm text-stone-600 font-medium dark:text-stone-300"
           >
-            <span className="flex items-center gap-2 bg-stone-100 px-4 py-2 rounded-xl">
+            <span className="flex items-center gap-2 bg-stone-100 px-4 py-2 rounded-xl dark:bg-stone-800">
               <ShieldCheck className="w-4 h-4 text-emerald-600" /> 安全可靠
             </span>
-            <span className="flex items-center gap-2 bg-stone-100 px-4 py-2 rounded-xl">
+            <span className="flex items-center gap-2 bg-stone-100 px-4 py-2 rounded-xl dark:bg-stone-800">
               <Zap className="w-4 h-4 text-amber-500" /> 快速接入
             </span>
           </motion.div>
@@ -128,35 +133,35 @@ export default function ApiHub() {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 + index * 0.1, duration: 0.6 }}
-              className="bg-white rounded-[2rem] p-8 border border-stone-100 hover:border-[#E8F0EE] hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.06)] transition-all duration-500 flex flex-col h-full group relative overflow-hidden"
+              className="bg-white rounded-[2rem] p-8 border border-stone-100 hover:border-[#E8F0EE] hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.06)] transition-all duration-500 flex flex-col h-full group relative overflow-hidden dark:bg-[#1A1A1A] dark:border-stone-800 dark:hover:border-[#1a2e24] dark:hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.3)]"
             >
-              <div className="absolute top-0 right-0 w-32 h-32 bg-[#E8F0EE]/30 rounded-bl-full -z-10 group-hover:bg-[#E8F0EE]/60 transition-colors duration-500"></div>
+              <div className="absolute top-0 right-0 w-32 h-32 bg-[#E8F0EE]/30 rounded-bl-full -z-10 group-hover:bg-[#E8F0EE]/60 transition-colors duration-500 dark:bg-[#1a2e24]/30 dark:group-hover:bg-[#1a2e24]/60"></div>
               
               <div className="flex justify-between items-start mb-6">
-                <h3 className="text-2xl font-bold text-stone-800 font-serif group-hover:text-[#2A6049] transition-colors">{provider.name}</h3>
+                <h3 className="text-2xl font-bold text-stone-800 font-serif group-hover:text-[#2A6049] transition-colors dark:text-stone-100 dark:group-hover:text-[#4A8069]">{provider.name}</h3>
               </div>
               
               <div className="flex gap-2 mb-6">
                 {provider.tags.map(tag => (
-                  <span key={tag} className={`text-xs px-3 py-1.5 rounded-full border font-medium ${tag === '国产推荐' ? 'bg-[#E8F0EE] text-[#2A6049] border-[#2A6049]/10' : 'bg-stone-50 text-stone-500 border-stone-200'}`}>
+                  <span key={tag} className={`text-xs px-3 py-1.5 rounded-full border font-medium ${tag === '国产推荐' ? 'bg-[#E8F0EE] text-[#2A6049] border-[#2A6049]/10 dark:bg-[#1a2e24] dark:text-[#4A8069] dark:border-[#4A8069]/20' : 'bg-stone-50 text-stone-500 border-stone-200 dark:bg-stone-800 dark:text-stone-400 dark:border-stone-700'}`}>
                     {tag}
                   </span>
                 ))}
               </div>
               
-              <p className="text-stone-500 text-base mb-8 font-light leading-relaxed flex-grow">
+              <p className="text-stone-500 text-base mb-8 font-light leading-relaxed flex-grow dark:text-stone-400">
                 {provider.description}
               </p>
               
-              <div className="bg-stone-50/80 rounded-2xl p-6 border border-stone-100 mb-8">
-                <h4 className="text-sm font-bold text-stone-800 mb-4 flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#2A6049]"></span>
+              <div className="bg-stone-50/80 rounded-2xl p-6 border border-stone-100 mb-8 dark:bg-stone-800/80 dark:border-stone-700">
+                <h4 className="text-sm font-bold text-stone-800 mb-4 flex items-center gap-2 dark:text-stone-100">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#2A6049] dark:bg-[#4A8069]"></span>
                   简易申请步骤
                 </h4>
                 <ul className="space-y-4">
                   {provider.steps.map((step, i) => (
-                    <li key={i} className="flex gap-3 text-sm text-stone-600 font-light items-start">
-                      <span className="w-5 h-5 rounded-full bg-white text-stone-400 flex items-center justify-center flex-shrink-0 text-xs font-bold border border-stone-200 shadow-sm mt-0.5">
+                    <li key={i} className="flex gap-3 text-sm text-stone-600 font-light items-start dark:text-stone-300">
+                      <span className="w-5 h-5 rounded-full bg-white text-stone-400 flex items-center justify-center flex-shrink-0 text-xs font-bold border border-stone-200 shadow-sm mt-0.5 dark:bg-stone-900 dark:text-stone-500 dark:border-stone-700">
                         {i + 1}
                       </span>
                       <span className="leading-relaxed">{step}</span>
@@ -169,7 +174,7 @@ export default function ApiHub() {
                 href={provider.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full py-4 bg-[#2A6049] text-white rounded-xl font-medium text-sm hover:bg-[#1f4736] transition-all flex items-center justify-center gap-2 group/btn shadow-md shadow-[#2A6049]/20 hover:shadow-lg hover:shadow-[#2A6049]/30 hover:-translate-y-0.5"
+                className="w-full py-4 bg-[#2A6049] text-white rounded-xl font-medium text-sm hover:bg-[#1f4736] transition-all flex items-center justify-center gap-2 group/btn shadow-md shadow-[#2A6049]/20 hover:shadow-lg hover:shadow-[#2A6049]/30 hover:-translate-y-0.5 dark:bg-[#4A8069] dark:hover:bg-[#3d6d58] dark:shadow-[#4A8069]/20 dark:hover:shadow-[#4A8069]/30"
               >
                 前往获取 API Key
                 <ExternalLink className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />

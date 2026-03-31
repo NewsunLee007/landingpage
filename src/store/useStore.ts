@@ -20,6 +20,7 @@ export interface Article {
   date: string;
   summary: string;
   imageUrl?: string;
+  tags?: string[];
 }
 
 interface StoreState {
@@ -29,6 +30,7 @@ interface StoreState {
   updateApp: (id: string, app: Partial<AppItem>) => void;
   deleteApp: (id: string) => void;
   addArticle: (article: Article) => void;
+  updateArticle: (id: string, article: Partial<Article>) => void;
   deleteArticle: (id: string) => void;
 }
 
@@ -180,13 +182,14 @@ const initialArticles: Article[] = [
 
 ## 技术与人文的交汇
 
-我并不拘泥于传统的编程范式，而是善于利用 AI 工具作为我的“副驾驶”。这极大地缩短了从“想法”到“产品”的距离。
+我并不拘泥于传统的编程范式，而是善于利用 AI 工具作为我的"副驾驶"。这极大地缩短了从"想法"到"产品"的距离。
 
 这不仅仅是工具的堆砌，更是我对教育事业热爱的另一种极具创造力的表达方式。
 
 未来，我还会在这里分享更多关于**英语教学法**、**AI 辅助教学**以及 **Web 开发**的思考与实践。感谢你的访问，希望这些工具能给你带来启发！`,
     date: new Date().toISOString().split('T')[0],
-    imageUrl: 'https://p.ipic.vip/198jan.jpg'
+    imageUrl: 'https://p.ipic.vip/198jan.jpg',
+    tags: ['教学思考', 'AI']
   }
 ];
 
@@ -205,12 +208,15 @@ export const useStore = create<StoreState>()(
       addArticle: (article) => set((state) => ({
         articles: [article, ...state.articles]
       })),
+      updateArticle: (id, updatedArticle) => set((state) => ({
+        articles: state.articles.map(article => article.id === id ? { ...article, ...updatedArticle } : article)
+      })),
       deleteArticle: (id) => set((state) => ({
         articles: state.articles.filter(article => article.id !== id)
       })),
     }),
     {
-      name: 'newsun-storage-v6', // Changed storage name to force cache reset
+      name: 'newsun-storage-v7', // Changed storage name to force cache reset
     }
   )
 );

@@ -1,7 +1,8 @@
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { HelmetProvider } from 'react-helmet-async';
+import { useStore } from './store/useStore';
 
 const Home = lazy(() => import('./pages/Home'));
 const Admin = lazy(() => import('./pages/Admin'));
@@ -23,6 +24,11 @@ function LoadingSpinner() {
 
 function AnimatedRoutes() {
   const location = useLocation();
+  const { initialize } = useStore();
+
+  useEffect(() => {
+    initialize();
+  }, [initialize]);
 
   return (
     <AnimatePresence mode="wait">

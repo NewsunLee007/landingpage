@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { apiService, type ApiAppItem, type ApiArticle } from '../services/api';
 
 export interface AppItem {
   id: string;
@@ -8,9 +9,9 @@ export interface AppItem {
   url: string;
   category: string;
   tags: string[];
-  iconName: string; // store icon name to avoid storing React nodes
-  imageUrl?: string; // Optional image URL for the card
-  isPrivate?: boolean; // Whether the app requires a password
+  iconName: string;
+  imageUrl?: string;
+  isPrivate?: boolean;
 }
 
 export interface Article {
@@ -26,12 +27,15 @@ export interface Article {
 interface StoreState {
   apps: AppItem[];
   articles: Article[];
-  addApp: (app: AppItem) => void;
-  updateApp: (id: string, app: Partial<AppItem>) => void;
-  deleteApp: (id: string) => void;
-  addArticle: (article: Article) => void;
-  updateArticle: (id: string, article: Partial<Article>) => void;
-  deleteArticle: (id: string) => void;
+  isLoading: boolean;
+  useBackend: boolean;
+  initialize: () => Promise<void>;
+  addApp: (app: AppItem) => Promise<void>;
+  updateApp: (id: string, app: Partial<AppItem>) => Promise<void>;
+  deleteApp: (id: string) => Promise<void>;
+  addArticle: (article: Article) => Promise<void>;
+  updateArticle: (id: string, article: Partial<Article>) => Promise<void>;
+  deleteArticle: (id: string) => Promise<void>;
 }
 
 const initialApps: AppItem[] = [
@@ -193,30 +197,206 @@ const initialArticles: Article[] = [
   }
 ];
 
+function convertApiAppToAppItem(apiApp: ApiAppItem): AppItem {
+  return {
+    id: apiApp.id,
+    title: apiApp.title,
+    description: apiApp.description,
+    url: apiApp.url,
+    category: apiApp.category,
+    tags: apiApp.tags,
+    iconName: apiApp.iconName,
+    imageUrl: apiApp.imageUrl,
+    isPrivate: apiApp.isPrivate,
+  };
+}
+
+function convertApiArticleToArticle(apiArticle: ApiArticle): Article {
+  return {
+    id: apiArticle.id,
+    title: apiArticle.title,
+    content: apiArticle.content,
+    date: apiArticle.date,
+    summary: apiArticle.summary,
+    imageUrl: apiArticle.imageUrl,
+    tags: apiArticle.tags,
+  };
+}
+
+function convertAppItemToApiApp(app: AppItem): Omit<ApiAppItem, 'id' | 'createdAt' | 'updatedAt'> {
+  return {
+    title: app.title,
+    description: app.description,
+    url: app.url,
+    category: app.category,
+    tags: app.tags,
+    iconName: app.iconName,
+    imageUrl: app.imageUrl,
+    isPrivate: app.isPrivate,
+  };
+}
+
+function convertArticleToApiArticle(article: Article): Omit<ApiArticle, 'id' | 'createdAt' | 'updatedAt'> {
+  return {
+    title: article.title,
+    content: article.content,
+    date: article.date,
+    summary: article.summary,
+    imageUrl: article.imageUrl,
+    tags: article.tags || [],
+  };
+}
+
 export const useStore = create<StoreState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       apps: initialApps,
       articles: initialArticles,
-      addApp: (app) => set((state) => ({ apps: [...state.apps, app] })),
-      updateApp: (id, updatedApp) => set((state) => ({
-        apps: state.apps.map(app => app.id === id ? { ...app, ...updatedApp } : app)
-      })),
-      deleteApp: (id) => set((state) => ({
-        apps: state.apps.filter(app => app.id !== id)
-      })),
-      addArticle: (article) => set((state) => ({
-        articles: [article, ...state.articles]
-      })),
-      updateArticle: (id, updatedArticle) => set((state) => ({
-        articles: state.articles.map(article => article.id === id ? { ...article, ...updatedArticle } : article)
-      })),
-      deleteArticle: (id) => set((state) => ({
-        articles: state.articles.filter(article => article.id !== id)
-      })),
+      isLoading: false,
+      useBackend: false,
+
+      initialize: async () => {
+        set({ isLoading: true });
+        try {
+          const backendAvailable = await apiService.isBackendAvailable();
+          if (backendAvailable) {
+            const [apiApps, apiArticles] = await Promise.all([
+              apiService.getApps(),
+              apiService.getArticles(),
+            ]);
+            set({
+              apps: apiApps.map(convertApiAppToAppItem),
+              articles: apiArticles.map(convertApiArticleToArticle),
+              useBackend: true,
+              isLoading: false,
+            });
+          } else {
+            set({ useBackend: false, isLoading: false });
+          }
+        } catch (error) {
+          console.error('Failed to initialize from backend:', error);
+          set({ useBackend: false, isLoading: false });
+        }
+      },
+
+      addApp: async (app) => {
+        const { useBackend } = get();
+        if (useBackend) {
+          try {
+            const createdApp = await apiService.createApp(convertAppItemToApiApp(app));
+            set((state) => ({
+              apps: [...state.apps, convertApiAppToAppItem(createdApp)],
+            }));
+          } catch (error) {
+            console.error('Failed to create app via API:', error);
+            set((state) => ({
+              apps: [...state.apps, app],
+            }));
+          }
+        } else {
+          set((state) => ({
+            apps: [...state.apps, app],
+          }));
+        }
+      },
+
+      updateApp: async (id, updatedApp) => {
+        const { useBackend } = get();
+        if (useBackend) {
+          try {
+            const updated = await apiService.updateApp(id, updatedApp);
+            set((state) => ({
+              apps: state.apps.map(app => app.id === id ? { ...app, ...convertApiAppToAppItem(updated) } : app),
+            }));
+          } catch (error) {
+            console.error('Failed to update app via API:', error);
+            set((state) => ({
+              apps: state.apps.map(app => app.id === id ? { ...app, ...updatedApp } : app),
+            }));
+          }
+        } else {
+          set((state) => ({
+            apps: state.apps.map(app => app.id === id ? { ...app, ...updatedApp } : app),
+          }));
+        }
+      },
+
+      deleteApp: async (id) => {
+        const { useBackend } = get();
+        if (useBackend) {
+          try {
+            await apiService.deleteApp(id);
+          } catch (error) {
+            console.error('Failed to delete app via API:', error);
+          }
+        }
+        set((state) => ({
+          apps: state.apps.filter(app => app.id !== id),
+        }));
+      },
+
+      addArticle: async (article) => {
+        const { useBackend } = get();
+        if (useBackend) {
+          try {
+            const createdArticle = await apiService.createArticle(convertArticleToApiArticle(article));
+            set((state) => ({
+              articles: [convertApiArticleToArticle(createdArticle), ...state.articles],
+            }));
+          } catch (error) {
+            console.error('Failed to create article via API:', error);
+            set((state) => ({
+              articles: [article, ...state.articles],
+            }));
+          }
+        } else {
+          set((state) => ({
+            articles: [article, ...state.articles],
+          }));
+        }
+      },
+
+      updateArticle: async (id, updatedArticle) => {
+        const { useBackend } = get();
+        if (useBackend) {
+          try {
+            const updated = await apiService.updateArticle(id, updatedArticle);
+            set((state) => ({
+              articles: state.articles.map(article => article.id === id ? { ...article, ...convertApiArticleToArticle(updated) } : article),
+            }));
+          } catch (error) {
+            console.error('Failed to update article via API:', error);
+            set((state) => ({
+              articles: state.articles.map(article => article.id === id ? { ...article, ...updatedArticle } : article),
+            }));
+          }
+        } else {
+          set((state) => ({
+            articles: state.articles.map(article => article.id === id ? { ...article, ...updatedArticle } : article),
+          }));
+        }
+      },
+
+      deleteArticle: async (id) => {
+        const { useBackend } = get();
+        if (useBackend) {
+          try {
+            await apiService.deleteArticle(id);
+          } catch (error) {
+            console.error('Failed to delete article via API:', error);
+          }
+        }
+        set((state) => ({
+          articles: state.articles.filter(article => article.id !== id),
+        }));
+      },
     }),
     {
-      name: 'newsun-storage-v7', // Changed storage name to force cache reset
+      name: 'newsun-storage-v8',
+      partialize: (state) => ({
+        apps: state.apps,
+        articles: state.articles,
+      }),
     }
   )
 );

@@ -1,22 +1,22 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import type { AppItem, Article } from '../store/useStore';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Plus, Trash2, Edit2, Save, LogOut } from 'lucide-react';
-import { isDbConfigured } from '../services/db';
+import { apiService } from '../services/api';
 import { Helmet } from 'react-helmet-async';
 
 const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || 'newsun2024';
-const AUTH_KEY = 'newsun_admin_auth';
-const AUTH_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
+const LOCAL_AUTH_KEY = 'newsun_admin_auth';
+const AUTH_EXPIRY_MS = 24 * 60 * 60 * 1000;
 
-function checkAuth(): boolean {
+function checkLocalAuth(): boolean {
   try {
-    const data = JSON.parse(localStorage.getItem(AUTH_KEY) || '{}');
+    const data = JSON.parse(localStorage.getItem(LOCAL_AUTH_KEY) || '{}');
     if (data.timestamp && Date.now() - data.timestamp < AUTH_EXPIRY_MS) {
       return true;
     }
-    localStorage.removeItem(AUTH_KEY);
+    localStorage.removeItem(LOCAL_AUTH_KEY);
     return false;
   } catch {
     return false;
@@ -24,11 +24,28 @@ function checkAuth(): boolean {
 }
 
 export default function Admin() {
-  const [isAuthenticated, setIsAuthenticated] = useState(checkAuth);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => 
+    apiService.isAuthenticated() || checkLocalAuth()
+  );
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [useBackendAuth, setUseBackendAuth] = useState(false);
+  const [checkingBackend, setCheckingBackend] = useState(true);
 
-  const { apps, articles, addApp, updateApp, deleteApp, addArticle, updateArticle, deleteArticle } = useStore();
+  const { 
+    apps, 
+    articles, 
+    addApp, 
+    updateApp, 
+    deleteApp, 
+    addArticle, 
+    updateArticle, 
+    deleteArticle,
+    initialize,
+    useBackend
+  } = useStore();
   const [activeTab, setActiveTab] = useState<'apps' | 'articles'>('apps');
 
   const [isEditingApp, setIsEditingApp] = useState(false);
@@ -37,31 +54,64 @@ export default function Admin() {
   const [isEditingArticle, setIsEditingArticle] = useState(false);
   const [currentArticle, setCurrentArticle] = useState<Partial<Article>>({});
 
-  const handleLogin = (e: React.FormEvent) => {
+  useEffect(() => {
+    const checkBackend = async () => {
+      try {
+        const available = await apiService.isBackendAvailable();
+        setUseBackendAuth(available);
+      } catch {
+        setUseBackendAuth(false);
+      } finally {
+        setCheckingBackend(false);
+      }
+    };
+    checkBackend();
+    if (isAuthenticated) {
+      initialize();
+    }
+  }, [isAuthenticated, initialize]);
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === ADMIN_PASSWORD) {
-      setIsAuthenticated(true);
-      localStorage.setItem(AUTH_KEY, JSON.stringify({ timestamp: Date.now() }));
-      setLoginError('');
+    setIsLoggingIn(true);
+    setLoginError('');
+
+    if (useBackendAuth) {
+      try {
+        await apiService.login(username, password);
+        setIsAuthenticated(true);
+        await initialize();
+      } catch {
+        setLoginError('用户名或密码错误，请重试');
+      } finally {
+        setIsLoggingIn(false);
+      }
     } else {
-      setLoginError('密码错误，请重试');
+      if (password === ADMIN_PASSWORD) {
+        setIsAuthenticated(true);
+        localStorage.setItem(LOCAL_AUTH_KEY, JSON.stringify({ timestamp: Date.now() }));
+      } else {
+        setLoginError('密码错误，请重试');
+      }
+      setIsLoggingIn(false);
     }
   };
 
   const handleLogout = () => {
     setIsAuthenticated(false);
-    localStorage.removeItem(AUTH_KEY);
+    apiService.logout();
+    localStorage.removeItem(LOCAL_AUTH_KEY);
   };
 
-  const handleSaveApp = () => {
+  const handleSaveApp = async () => {
     if (!currentApp.title || !currentApp.url) return;
     
     if (currentApp.id) {
-      updateApp(currentApp.id, currentApp as AppItem);
+      await updateApp(currentApp.id, currentApp as AppItem);
     } else {
-      addApp({
+      await addApp({
         ...currentApp,
-        id: Date.now().toString(),
+        id: useBackend ? crypto.randomUUID() : Date.now().toString(),
         tags: currentApp.tags || ['新增工具'],
         iconName: currentApp.iconName || 'Layout',
         category: currentApp.category || '综合展示',
@@ -71,15 +121,15 @@ export default function Admin() {
     setCurrentApp({});
   };
 
-  const handleSaveArticle = () => {
+  const handleSaveArticle = async () => {
     if (!currentArticle.title || !currentArticle.content) return;
     
     if (currentArticle.id) {
-      updateArticle(currentArticle.id, currentArticle as Article);
+      await updateArticle(currentArticle.id, currentArticle as Article);
     } else {
-      addArticle({
+      await addArticle({
         ...currentArticle,
-        id: Date.now().toString(),
+        id: useBackend ? crypto.randomUUID() : Date.now().toString(),
         date: new Date().toISOString().split('T')[0],
       } as Article);
     }
@@ -96,26 +146,46 @@ export default function Admin() {
         <div className="bg-white p-8 rounded-3xl shadow-[0_8px_30px_-4px_rgba(0,0,0,0.05)] w-full max-w-md border border-stone-100 dark:bg-[#1A1A1A] dark:border-stone-800 dark:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.3)]">
           <div className="text-center mb-8">
             <h1 className="text-2xl font-bold text-stone-800 font-serif mb-2 dark:text-stone-100">Newsun 控制台</h1>
-            <p className="text-stone-500 text-sm dark:text-stone-400">请输入管理密码以继续</p>
+            <p className="text-stone-500 text-sm dark:text-stone-400">
+              {checkingBackend ? '正在检测连接...' : (useBackendAuth ? '请输入账号密码以继续' : '请输入管理密码以继续')}
+            </p>
           </div>
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <input 
-                type="password" 
-                placeholder="管理密码 (默认: newsun2024)" 
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:border-[#2A6049] focus:ring-1 focus:ring-[#2A6049] outline-none transition-all dark:bg-stone-800 dark:border-stone-700 dark:text-stone-200 dark:placeholder:text-stone-500 dark:focus:border-[#4A8069] dark:focus:ring-[#4A8069]"
-              />
+          {checkingBackend ? (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2A6049]"></div>
             </div>
-            {loginError && <p className="text-red-500 text-sm">{loginError}</p>}
-            <button 
-              type="submit"
-              className="w-full py-3 bg-[#2A6049] text-white rounded-xl font-medium hover:bg-[#1f4736] transition-colors dark:bg-[#4A8069] dark:hover:bg-[#3d6d58]"
-            >
-              登录
-            </button>
-          </form>
+          ) : (
+            <form onSubmit={handleLogin} className="space-y-4">
+              {useBackendAuth && (
+                <div>
+                  <input 
+                    type="text" 
+                    placeholder="用户名" 
+                    value={username}
+                    onChange={e => setUsername(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:border-[#2A6049] focus:ring-1 focus:ring-[#2A6049] outline-none transition-all dark:bg-stone-800 dark:border-stone-700 dark:text-stone-200 dark:placeholder:text-stone-500 dark:focus:border-[#4A8069] dark:focus:ring-[#4A8069]"
+                  />
+                </div>
+              )}
+              <div>
+                <input 
+                  type="password" 
+                  placeholder={useBackendAuth ? "密码" : "管理密码 (默认: newsun2024)"}
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:border-[#2A6049] focus:ring-1 focus:ring-[#2A6049] outline-none transition-all dark:bg-stone-800 dark:border-stone-700 dark:text-stone-200 dark:placeholder:text-stone-500 dark:focus:border-[#4A8069] dark:focus:ring-[#4A8069]"
+                />
+              </div>
+              {loginError && <p className="text-red-500 text-sm">{loginError}</p>}
+              <button 
+                type="submit"
+                disabled={isLoggingIn}
+                className="w-full py-3 bg-[#2A6049] text-white rounded-xl font-medium hover:bg-[#1f4736] transition-colors dark:bg-[#4A8069] dark:hover:bg-[#3d6d58] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoggingIn ? '登录中...' : '登录'}
+              </button>
+            </form>
+          )}
           <div className="mt-6 text-center">
             <Link to="/" className="text-sm text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-200">返回首页</Link>
           </div>
@@ -160,10 +230,10 @@ export default function Admin() {
 
       <main className="max-w-5xl mx-auto p-6 mt-6">
         
-        {/* LeanCloud Status Banner */}
-        {!isDbConfigured && (
+        {/* Backend Status Banner */}
+        {!useBackend && (
           <div className="mb-8 p-4 bg-orange-50 border border-orange-200 text-orange-800 rounded-2xl text-sm dark:bg-orange-900/20 dark:border-orange-800/50 dark:text-orange-300">
-            <strong>数据库未配置提示：</strong> 当前数据保存在您的浏览器本地。若需在正式外网环境长期保存，请在代码 <code className="bg-orange-100 dark:bg-orange-900/40 px-1 rounded">.env.local</code> 文件中配置您的 <strong>LeanCloud</strong> 密钥 (APP_ID / APP_KEY)。由于国内网络环境限制，推荐使用 LeanCloud 或 Laf 作为轻量级云开发数据库。
+            <strong>提示：</strong> 当前数据保存在您的浏览器本地。若需使用后端 API 保存数据，请确保后端服务（http://localhost:3001）已启动并正常运行。
           </div>
         )}
 

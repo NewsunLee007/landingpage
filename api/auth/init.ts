@@ -1,7 +1,12 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
-const prisma = new PrismaClient();
+let prisma;
+try {
+  prisma = new PrismaClient();
+} catch (error) {
+  console.error('Failed to initialize Prisma:', error);
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -9,6 +14,10 @@ export default async function handler(req, res) {
   }
 
   try {
+    if (!prisma) {
+      return res.status(503).json({ message: 'Database service unavailable' });
+    }
+
     const adminUsername = process.env.ADMIN_USERNAME || 'admin';
     const adminPassword = process.env.ADMIN_PASSWORD || 'newsun2024';
 
@@ -34,6 +43,12 @@ export default async function handler(req, res) {
     console.error('Init admin error:', error);
     res.status(500).json({ message: 'Internal server error' });
   } finally {
-    await prisma.$disconnect();
+    if (prisma) {
+      try {
+        await prisma.$disconnect();
+      } catch (error) {
+        console.error('Error disconnecting Prisma:', error);
+      }
+    }
   }
 }

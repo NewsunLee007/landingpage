@@ -1,13 +1,4 @@
-import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-
-let prisma;
-try {
-  prisma = new PrismaClient();
-} catch (error) {
-  console.error('Failed to initialize Prisma:', error);
-}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -21,7 +12,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ message: 'Username and password are required' });
     }
 
-    // 临时的本地验证，用于测试
+    // 简单的用户名和密码验证
     if (username === 'admin' && password === 'newsun2024') {
       const token = jwt.sign(
         { id: '1', username: 'admin' },
@@ -37,50 +28,11 @@ export default async function handler(req, res) {
           username: 'admin',
         },
       });
-    }
-
-    if (prisma) {
-      const admin = await prisma.adminUser.findUnique({
-        where: { username },
-      });
-
-      if (!admin) {
-        return res.status(401).json({ message: 'Invalid credentials' });
-      }
-
-      const isPasswordValid = await bcrypt.compare(password, admin.password);
-
-      if (!isPasswordValid) {
-        return res.status(401).json({ message: 'Invalid credentials' });
-      }
-
-      const token = jwt.sign(
-        { id: admin.id, username: admin.username },
-        process.env.JWT_SECRET || 'your-secret-key',
-        { expiresIn: '24h' }
-      );
-
-      res.json({
-        message: 'Login successful',
-        token,
-        admin: {
-          id: admin.id,
-          username: admin.username,
-        },
-      });
     } else {
-      res.status(503).json({ message: 'Database service unavailable' });
+      return res.status(401).json({ message: 'Invalid credentials' });
     }
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ message: 'Internal server error' });
-  } finally {
-    if (prisma) {
-      try {
-        await prisma.$disconnect();
-      } catch (error) {
-        console.error('Error disconnecting Prisma:', error);
-      }
-    }
   }
 }

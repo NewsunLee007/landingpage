@@ -6,46 +6,17 @@ import { ArrowLeft, Plus, Trash2, Edit2, Save, LogOut } from 'lucide-react';
 import { apiService } from '../services/api';
 import { Helmet } from 'react-helmet-async';
 
-const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || 'newsun2024';
-const LOCAL_AUTH_KEY = 'newsun_admin_auth';
-const AUTH_EXPIRY_MS = 24 * 60 * 60 * 1000;
-
-function checkLocalAuth(): boolean {
-  try {
-    const data = JSON.parse(localStorage.getItem(LOCAL_AUTH_KEY) || '{}');
-    if (data.timestamp && Date.now() - data.timestamp < AUTH_EXPIRY_MS) {
-      return true;
-    }
-    localStorage.removeItem(LOCAL_AUTH_KEY);
-    return false;
-  } catch {
-    return false;
-  }
+function checkAuth(): boolean {
+  return apiService.isAuthenticated();
 }
 
 export default function Admin() {
-  const [isAuthenticated, setIsAuthenticated] = useState(() => 
-    apiService.isAuthenticated() || checkLocalAuth()
-  );
-  const [username, setUsername] = useState('');
+  const [isAuthenticated, setIsAuthenticated] = useState(checkAuth);
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const [useBackendAuth, setUseBackendAuth] = useState(false);
-  const [checkingBackend, setCheckingBackend] = useState(true);
+  const [backendAvailable, setBackendAvailable] = useState(false);
 
-  const { 
-    apps, 
-    articles, 
-    addApp, 
-    updateApp, 
-    deleteApp, 
-    addArticle, 
-    updateArticle, 
-    deleteArticle,
-    initialize,
-    useBackend
-  } = useStore();
+  const { apps, articles, addApp, updateApp, deleteApp, addArticle, updateArticle, deleteArticle, setApps, setArticles } = useStore();
   const [activeTab, setActiveTab] = useState<'apps' | 'articles'>('apps');
 
   const [isEditingApp, setIsEditingApp] = useState(false);
@@ -55,86 +26,93 @@ export default function Admin() {
   const [currentArticle, setCurrentArticle] = useState<Partial<Article>>({});
 
   useEffect(() => {
-    const checkBackend = async () => {
-      try {
-        const available = await apiService.isBackendAvailable();
-        setUseBackendAuth(available);
-      } catch {
-        setUseBackendAuth(false);
-      } finally {
-        setCheckingBackend(false);
+    const checkBackendAndLoadData = async () => {
+      if (isAuthenticated) {
+        try {
+          const isAvailable = await apiService.isBackendAvailable();
+          setBackendAvailable(isAvailable);
+          
+          if (isAvailable) {
+            // 从后端加载数据
+            const [appsData, articlesData] = await Promise.all([
+              apiService.getApps(),
+              apiService.getArticles()
+            ]);
+            setApps(appsData as AppItem[]);
+            setArticles(articlesData as Article[]);
+          }
+        } catch (error) {
+          console.error('检查后端状态失败:', error);
+          setBackendAvailable(false);
+        }
       }
     };
-    checkBackend();
-    if (isAuthenticated) {
-      initialize();
-    }
-  }, [isAuthenticated, initialize]);
+
+    checkBackendAndLoadData();
+  }, [isAuthenticated, setApps, setArticles]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoggingIn(true);
-    setLoginError('');
-
-    if (useBackendAuth) {
-      try {
-        await apiService.login(username, password);
-        setIsAuthenticated(true);
-        await initialize();
-      } catch {
-        setLoginError('用户名或密码错误，请重试');
-      } finally {
-        setIsLoggingIn(false);
-      }
-    } else {
-      if (password === ADMIN_PASSWORD) {
-        setIsAuthenticated(true);
-        localStorage.setItem(LOCAL_AUTH_KEY, JSON.stringify({ timestamp: Date.now() }));
-      } else {
-        setLoginError('密码错误，请重试');
-      }
-      setIsLoggingIn(false);
+    try {
+      await apiService.login('admin', password);
+      setIsAuthenticated(true);
+      setLoginError('');
+    } catch (error) {
+      setLoginError('密码错误，请重试');
     }
   };
 
   const handleLogout = () => {
-    setIsAuthenticated(false);
     apiService.logout();
-    localStorage.removeItem(LOCAL_AUTH_KEY);
+    setIsAuthenticated(false);
   };
 
   const handleSaveApp = async () => {
     if (!currentApp.title || !currentApp.url) return;
     
-    if (currentApp.id) {
-      await updateApp(currentApp.id, currentApp as AppItem);
-    } else {
-      await addApp({
-        ...currentApp,
-        id: useBackend ? crypto.randomUUID() : Date.now().toString(),
-        tags: currentApp.tags || ['新增工具'],
-        iconName: currentApp.iconName || 'Layout',
-        category: currentApp.category || '综合展示',
-      } as AppItem);
+    try {
+      if (currentApp.id) {
+        await apiService.updateApp(currentApp.id, currentApp as any);
+        updateApp(currentApp.id, currentApp as AppItem);
+      } else {
+        const newApp = {
+          ...currentApp,
+          tags: currentApp.tags || ['新增工具'],
+          iconName: currentApp.iconName || 'Layout',
+          category: currentApp.category || '综合展示',
+        } as any;
+        const createdApp = await apiService.createApp(newApp);
+        addApp(createdApp as AppItem);
+      }
+      setIsEditingApp(false);
+      setCurrentApp({});
+    } catch (error) {
+      console.error('保存应用失败:', error);
+      alert('保存失败，请稍后重试');
     }
-    setIsEditingApp(false);
-    setCurrentApp({});
   };
 
   const handleSaveArticle = async () => {
     if (!currentArticle.title || !currentArticle.content) return;
     
-    if (currentArticle.id) {
-      await updateArticle(currentArticle.id, currentArticle as Article);
-    } else {
-      await addArticle({
-        ...currentArticle,
-        id: useBackend ? crypto.randomUUID() : Date.now().toString(),
-        date: new Date().toISOString().split('T')[0],
-      } as Article);
+    try {
+      if (currentArticle.id) {
+        await apiService.updateArticle(currentArticle.id, currentArticle as any);
+        updateArticle(currentArticle.id, currentArticle as Article);
+      } else {
+        const newArticle = {
+          ...currentArticle,
+          date: new Date().toISOString().split('T')[0],
+        } as any;
+        const createdArticle = await apiService.createArticle(newArticle);
+        addArticle(createdArticle as Article);
+      }
+      setIsEditingArticle(false);
+      setCurrentArticle({});
+    } catch (error) {
+      console.error('保存文章失败:', error);
+      alert('保存失败，请稍后重试');
     }
-    setIsEditingArticle(false);
-    setCurrentArticle({});
   };
 
   if (!isAuthenticated) {
@@ -146,46 +124,26 @@ export default function Admin() {
         <div className="bg-white p-8 rounded-3xl shadow-[0_8px_30px_-4px_rgba(0,0,0,0.05)] w-full max-w-md border border-stone-100 dark:bg-[#1A1A1A] dark:border-stone-800 dark:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.3)]">
           <div className="text-center mb-8">
             <h1 className="text-2xl font-bold text-stone-800 font-serif mb-2 dark:text-stone-100">Newsun 控制台</h1>
-            <p className="text-stone-500 text-sm dark:text-stone-400">
-              {checkingBackend ? '正在检测连接...' : (useBackendAuth ? '请输入账号密码以继续' : '请输入管理密码以继续')}
-            </p>
+            <p className="text-stone-500 text-sm dark:text-stone-400">请输入管理密码以继续</p>
           </div>
-          {checkingBackend ? (
-            <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#2A6049]"></div>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <input 
+                type="password" 
+                placeholder="管理密码" 
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:border-[#2A6049] focus:ring-1 focus:ring-[#2A6049] outline-none transition-all dark:bg-stone-800 dark:border-stone-700 dark:text-stone-200 dark:placeholder:text-stone-500 dark:focus:border-[#4A8069] dark:focus:ring-[#4A8069]"
+              />
             </div>
-          ) : (
-            <form onSubmit={handleLogin} className="space-y-4">
-              {useBackendAuth && (
-                <div>
-                  <input 
-                    type="text" 
-                    placeholder="用户名" 
-                    value={username}
-                    onChange={e => setUsername(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:border-[#2A6049] focus:ring-1 focus:ring-[#2A6049] outline-none transition-all dark:bg-stone-800 dark:border-stone-700 dark:text-stone-200 dark:placeholder:text-stone-500 dark:focus:border-[#4A8069] dark:focus:ring-[#4A8069]"
-                  />
-                </div>
-              )}
-              <div>
-                <input 
-                  type="password" 
-                  placeholder={useBackendAuth ? "密码" : "管理密码 (默认: newsun2024)"}
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:border-[#2A6049] focus:ring-1 focus:ring-[#2A6049] outline-none transition-all dark:bg-stone-800 dark:border-stone-700 dark:text-stone-200 dark:placeholder:text-stone-500 dark:focus:border-[#4A8069] dark:focus:ring-[#4A8069]"
-                />
-              </div>
-              {loginError && <p className="text-red-500 text-sm">{loginError}</p>}
-              <button 
-                type="submit"
-                disabled={isLoggingIn}
-                className="w-full py-3 bg-[#2A6049] text-white rounded-xl font-medium hover:bg-[#1f4736] transition-colors dark:bg-[#4A8069] dark:hover:bg-[#3d6d58] disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isLoggingIn ? '登录中...' : '登录'}
-              </button>
-            </form>
-          )}
+            {loginError && <p className="text-red-500 text-sm">{loginError}</p>}
+            <button 
+              type="submit"
+              className="w-full py-3 bg-[#2A6049] text-white rounded-xl font-medium hover:bg-[#1f4736] transition-colors dark:bg-[#4A8069] dark:hover:bg-[#3d6d58]"
+            >
+              登录
+            </button>
+          </form>
           <div className="mt-6 text-center">
             <Link to="/" className="text-sm text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-200">返回首页</Link>
           </div>
@@ -230,10 +188,10 @@ export default function Admin() {
 
       <main className="max-w-5xl mx-auto p-6 mt-6">
         
-        {/* Backend Status Banner */}
-        {!useBackend && (
+        {/* Backend API Status Banner */}
+        {!backendAvailable && (
           <div className="mb-8 p-4 bg-orange-50 border border-orange-200 text-orange-800 rounded-2xl text-sm dark:bg-orange-900/20 dark:border-orange-800/50 dark:text-orange-300">
-            <strong>提示：</strong> 当前数据保存在您的浏览器本地。若需使用后端 API 保存数据，请确保后端服务（http://localhost:3001）已启动并正常运行。
+            <strong>后端服务未连接提示：</strong> 当前数据保存在您的浏览器本地。若需使用后端 API 保存数据，请确保后端服务已启动并正常运行。
           </div>
         )}
 
@@ -318,7 +276,17 @@ export default function Admin() {
                         <button onClick={() => { setCurrentApp(app); setIsEditingApp(true); }} className="p-2.5 text-stone-400 hover:text-[#2A6049] hover:bg-[#E8F0EE] rounded-xl transition-colors dark:text-stone-500 dark:hover:text-[#4A8069] dark:hover:bg-[#1a2e24]">
                           <Edit2 className="w-4 h-4" />
                         </button>
-                        <button onClick={() => deleteApp(app.id)} className="p-2.5 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors dark:text-stone-500 dark:hover:text-red-400 dark:hover:bg-red-900/20">
+                        <button onClick={async () => {
+                          if (window.confirm('确定要删除这个应用吗？')) {
+                            try {
+                              await apiService.deleteApp(app.id);
+                              deleteApp(app.id);
+                            } catch (error) {
+                              console.error('删除应用失败:', error);
+                              alert('删除失败，请稍后重试');
+                            }
+                          }
+                        }} className="p-2.5 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors dark:text-stone-500 dark:hover:text-red-400 dark:hover:bg-red-900/20">
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </td>
@@ -397,7 +365,17 @@ export default function Admin() {
                     <button onClick={() => { setCurrentArticle(article); setIsEditingArticle(true); }} className="p-2.5 text-stone-400 hover:text-[#2A6049] hover:bg-[#E8F0EE] rounded-xl transition-colors dark:text-stone-500 dark:hover:text-[#4A8069] dark:hover:bg-[#1a2e24]">
                       <Edit2 className="w-4 h-4" />
                     </button>
-                    <button onClick={() => deleteArticle(article.id)} className="p-2.5 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors dark:text-stone-500 dark:hover:text-red-400 dark:hover:bg-red-900/20">
+                    <button onClick={async () => {
+                      if (window.confirm('确定要删除这篇文章吗？')) {
+                        try {
+                          await apiService.deleteArticle(article.id);
+                          deleteArticle(article.id);
+                        } catch (error) {
+                          console.error('删除文章失败:', error);
+                          alert('删除失败，请稍后重试');
+                        }
+                      }
+                    }} className="p-2.5 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors dark:text-stone-500 dark:hover:text-red-400 dark:hover:bg-red-900/20">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>

@@ -36,6 +36,8 @@ interface StoreState {
   addArticle: (article: Article) => Promise<void>;
   updateArticle: (id: string, article: Partial<Article>) => Promise<void>;
   deleteArticle: (id: string) => Promise<void>;
+  setApps: (apps: AppItem[]) => void;
+  setArticles: (articles: Article[]) => void;
 }
 
 const initialApps: AppItem[] = [
@@ -389,6 +391,14 @@ export const useStore = create<StoreState>()(
         set((state) => ({
           articles: state.articles.filter(article => article.id !== id),
         }));
+      },
+
+      setApps: (apps) => {
+        set({ apps });
+      },
+
+      setArticles: (articles) => {
+        set({ articles });
       },
     }),
     {

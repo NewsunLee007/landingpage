@@ -1,20 +1,8 @@
 {
-  "buildCommand": "npm run build && prisma generate",
+  "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "installCommand": "npm install",
-  "framework": null,
+  "framework": "vite",
   "rewrites": [
-    { "source": "/api/auth/login", "destination": "/api/auth/login" },
-    { "source": "/api/auth/init", "destination": "/api/auth/init" },
-    { "source": "/api/articles", "destination": "/api/articles" },
-    { "source": "/api/articles/(.*)", "destination": "/api/articles" },
-    { "source": "/api/apps", "destination": "/api/apps" },
-    { "source": "/api/apps/(.*)", "destination": "/api/apps" },
     { "source": "/(.*)", "destination": "/index.html" }
-  ],
-  "functions": {
-    "api/**/*.ts": {
-      "runtime": "@vercel/node@4"
-    }
-  }
+  ]
 }

@@ -260,19 +260,29 @@ export const useStore = create<StoreState>()(
       initialize: async () => {
         set({ isLoading: true });
         try {
-          const backendAvailable = await apiService.isBackendAvailable();
-          if (backendAvailable) {
+          const currentApps = get().apps;
+          if (currentApps.length < initialApps.length) {
+            set({ apps: initialApps, articles: initialArticles });
+          }
+          
+          try {
             const [apiApps, apiArticles] = await Promise.all([
               apiService.getApps(),
               apiService.getArticles(),
             ]);
-            set({
-              apps: apiApps.map(convertApiAppToAppItem),
-              articles: apiArticles.map(convertApiArticleToArticle),
-              useBackend: true,
-              isLoading: false,
-            });
-          } else {
+            const isDefaultData = apiApps.length > 0 && apiApps[0].id === 'writeascend';
+            if (!isDefaultData) {
+              set({
+                apps: apiApps.map(convertApiAppToAppItem),
+                articles: apiArticles.map(convertApiArticleToArticle),
+                useBackend: true,
+                isLoading: false,
+              });
+            } else {
+              set({ useBackend: false, isLoading: false });
+            }
+          } catch (error) {
+            console.error('Failed to fetch data from backend:', error);
             set({ useBackend: false, isLoading: false });
           }
         } catch (error) {

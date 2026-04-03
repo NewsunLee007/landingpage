@@ -7,11 +7,12 @@ import { apiService } from '../services/api';
 import { Helmet } from 'react-helmet-async';
 
 function checkAuth(): boolean {
-  return !!localStorage.getItem('token');
+  return !!localStorage.getItem('newsun_auth_token');
 }
 
 export default function Admin() {
   const [isAuthenticated, setIsAuthenticated] = useState(checkAuth);
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
   const [backendAvailable, setBackendAvailable] = useState(false);
@@ -54,21 +55,17 @@ export default function Admin() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      // 直接设置一个硬编码的令牌，绕过后端API
-      if (password === 'newsun2024') {
-        localStorage.setItem('token', 'hardcoded-token-for-admin');
-        setIsAuthenticated(true);
-        setLoginError('');
-      } else {
-        setLoginError('密码错误，请重试');
-      }
+      await apiService.login(username, password);
+      setIsAuthenticated(true);
+      setLoginError('');
     } catch (error) {
-      setLoginError('密码错误，请重试');
+      console.error('Login failed:', error);
+      setLoginError('用户名或密码错误，请重试');
     }
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
+    apiService.logout();
     setIsAuthenticated(false);
   };
 
@@ -132,6 +129,15 @@ export default function Admin() {
             <p className="text-stone-500 text-sm dark:text-stone-400">请输入管理密码以继续</p>
           </div>
           <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <input 
+                type="text" 
+                placeholder="用户名" 
+                value={username}
+                onChange={e => setUsername(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:border-[#2A6049] focus:ring-1 focus:ring-[#2A6049] outline-none transition-all dark:bg-stone-800 dark:border-stone-700 dark:text-stone-200 dark:placeholder:text-stone-500 dark:focus:border-[#4A8069] dark:focus:ring-[#4A8069]"
+              />
+            </div>
             <div>
               <input 
                 type="password" 

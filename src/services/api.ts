@@ -115,8 +115,8 @@ class ApiService {
     return this.request<ApiAppItem[]>('/apps');
   }
 
-  async getApp(id: string): Promise<ApiAppItem> {
-    return this.request<ApiAppItem>(`/apps/${id}`);
+  async getApp(): Promise<ApiAppItem> {
+    return this.request<ApiAppItem>('/apps');
   }
 
   async createApp(app: Omit<ApiAppItem, 'id' | 'createdAt' | 'updatedAt'>): Promise<ApiAppItem> {
@@ -127,15 +127,16 @@ class ApiService {
   }
 
   async updateApp(id: string, app: Partial<Omit<ApiAppItem, 'id' | 'createdAt' | 'updatedAt'>>): Promise<ApiAppItem> {
-    return this.request<ApiAppItem>(`/apps/${id}`, {
+    return this.request<ApiAppItem>('/apps', {
       method: 'PUT',
-      body: JSON.stringify(app),
+      body: JSON.stringify({ id, ...app }),
     });
   }
 
   async deleteApp(id: string): Promise<void> {
-    return this.request<void>(`/apps/${id}`, {
+    return this.request<void>('/apps', {
       method: 'DELETE',
+      body: JSON.stringify({ id }),
     });
   }
 
@@ -143,8 +144,8 @@ class ApiService {
     return this.request<ApiArticle[]>('/articles');
   }
 
-  async getArticle(id: string): Promise<ApiArticle> {
-    return this.request<ApiArticle>(`/articles/${id}`);
+  async getArticle(): Promise<ApiArticle> {
+    return this.request<ApiArticle>('/articles');
   }
 
   async createArticle(article: Omit<ApiArticle, 'id' | 'createdAt' | 'updatedAt'>): Promise<ApiArticle> {
@@ -155,15 +156,16 @@ class ApiService {
   }
 
   async updateArticle(id: string, article: Partial<Omit<ApiArticle, 'id' | 'createdAt' | 'updatedAt'>>): Promise<ApiArticle> {
-    return this.request<ApiArticle>(`/articles/${id}`, {
+    return this.request<ApiArticle>('/articles', {
       method: 'PUT',
-      body: JSON.stringify(article),
+      body: JSON.stringify({ id, ...article }),
     });
   }
 
   async deleteArticle(id: string): Promise<void> {
-    return this.request<void>(`/articles/${id}`, {
+    return this.request<void>('/articles', {
       method: 'DELETE',
+      body: JSON.stringify({ id }),
     });
   }
 }

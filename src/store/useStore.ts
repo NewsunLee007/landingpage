@@ -270,17 +270,13 @@ export const useStore = create<StoreState>()(
               apiService.getApps(),
               apiService.getArticles(),
             ]);
-            const isDefaultData = apiApps.length > 0 && apiApps[0].id === 'writeascend';
-            if (!isDefaultData) {
-              set({
-                apps: apiApps.map(convertApiAppToAppItem),
-                articles: apiArticles.map(convertApiArticleToArticle),
-                useBackend: true,
-                isLoading: false,
-              });
-            } else {
-              set({ useBackend: false, isLoading: false });
-            }
+            // 只要能成功获取数据，就认为后端可用
+            set({
+              apps: apiApps.map(convertApiAppToAppItem),
+              articles: apiArticles.map(convertApiArticleToArticle),
+              useBackend: true,
+              isLoading: false,
+            });
           } catch (error) {
             console.error('Failed to fetch data from backend:', error);
             set({ useBackend: false, isLoading: false });

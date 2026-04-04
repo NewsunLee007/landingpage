@@ -1,5 +1,5 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Calendar, Share2, Sparkles, ThumbsUp, MessageSquare } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { useToastStore } from '../store/useToastStore';

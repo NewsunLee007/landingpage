@@ -12,6 +12,7 @@ interface ArticlesSectionProps {
 
 export default function ArticlesSection({ articles, globalView, searchQuery = '' }: ArticlesSectionProps) {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [visibleCount, setVisibleCount] = useState<number>(4);
 
   // Collect all unique tags
   const allTags = useMemo(() => {
@@ -65,6 +66,18 @@ export default function ArticlesSection({ articles, globalView, searchQuery = ''
     });
   }, [articles, searchQuery, selectedTags]);
 
+  const visibleArticles = filteredArticles.slice(0, visibleCount);
+  const hasMore = visibleCount < filteredArticles.length;
+
+  const handleShowMore = () => {
+    setVisibleCount(prev => prev + 4);
+  };
+
+  const handleShowLess = () => {
+    setVisibleCount(4);
+    document.getElementById('writing')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   return (
     <section id="writing" className="py-24 px-6 lg:px-8 bg-stone-50/50 dark:bg-[#0F0F0F]">
       <div className="max-w-6xl mx-auto">
@@ -109,10 +122,11 @@ export default function ArticlesSection({ articles, globalView, searchQuery = ''
         )}
 
         {filteredArticles.length > 0 ? (
-          globalView === 'card' ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {filteredArticles.map((article, index) => (
-                <Link to={`/article/${article.id}`} key={article.id}>
+          <>
+            {globalView === 'card' ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {visibleArticles.map((article, index) => (
+                  <Link to={`/article/${article.id}`} key={article.id}>
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
@@ -154,10 +168,10 @@ export default function ArticlesSection({ articles, globalView, searchQuery = ''
                 </Link>
               ))}
             </div>
-          ) : (
-            <div className="space-y-3">
-              {filteredArticles.map((article, index) => (
-                <Link to={`/article/${article.id}`} key={article.id}>
+            ) : (
+              <div className="space-y-3">
+                {visibleArticles.map((article, index) => (
+                  <Link to={`/article/${article.id}`} key={article.id}>
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
@@ -182,9 +196,31 @@ export default function ArticlesSection({ articles, globalView, searchQuery = ''
                     </div>
                   </motion.div>
                 </Link>
-              ))}
-            </div>
-          )
+                ))}
+              </div>
+            )}
+            
+            {/* Load More / Show Less Buttons */}
+            {filteredArticles.length > 4 && (
+              <div className="mt-12 flex justify-center gap-4">
+                {hasMore ? (
+                  <button
+                    onClick={handleShowMore}
+                    className="px-6 py-2.5 rounded-full bg-white border border-stone-200 text-stone-600 text-sm font-medium hover:bg-stone-50 hover:text-stone-900 transition-colors shadow-sm dark:bg-[#1A1A1A] dark:border-stone-800 dark:text-stone-400 dark:hover:text-stone-200 dark:hover:bg-stone-800"
+                  >
+                    加载更多随笔 ({filteredArticles.length - visibleCount})
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleShowLess}
+                    className="px-6 py-2.5 rounded-full bg-white border border-stone-200 text-stone-600 text-sm font-medium hover:bg-stone-50 hover:text-stone-900 transition-colors shadow-sm dark:bg-[#1A1A1A] dark:border-stone-800 dark:text-stone-400 dark:hover:text-stone-200 dark:hover:bg-stone-800"
+                  >
+                    收起列表
+                  </button>
+                )}
+              </div>
+            )}
+          </>
         ) : (
           <div className="col-span-full py-16 text-center text-stone-400 font-light border border-dashed border-stone-200 rounded-3xl dark:border-stone-700 dark:text-stone-500">
             {searchQuery || selectedTags.length > 0 ? '未找到匹配的文章，试试更换关键词或标签。' : '近期暂无更新。'}

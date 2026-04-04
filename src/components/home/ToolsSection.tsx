@@ -21,6 +21,7 @@ interface ToolsSectionProps {
 
 export default function ToolsSection({ apps, globalView, searchQuery = '' }: ToolsSectionProps) {
   const [activeCategory, setActiveCategory] = useState<string>('全部工具');
+  const [visibleCount, setVisibleCount] = useState<number>(6);
 
   const categoryCounts = useMemo(() => {
     const counts = TOOL_CATEGORIES.reduce<Record<string, number>>((acc, key) => {
@@ -45,6 +46,19 @@ export default function ToolsSection({ apps, globalView, searchQuery = '' }: Too
       return `${app.title} ${app.description} ${mappedCategory} ${app.tags.join(' ')}`.toLowerCase().includes(keyword);
     });
   }, [apps, activeCategory, searchQuery]);
+
+  // Handle visible apps
+  const visibleApps = filteredApps.slice(0, visibleCount);
+  const hasMore = visibleCount < filteredApps.length;
+
+  const handleShowMore = () => {
+    setVisibleCount(prev => prev + 6);
+  };
+
+  const handleShowLess = () => {
+    setVisibleCount(6);
+    document.getElementById('tools')?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   return (
     <section id="tools" className="py-24 px-6 lg:px-8 relative bg-stone-50/30 dark:bg-[#0F0F0F]">
@@ -75,7 +89,7 @@ export default function ToolsSection({ apps, globalView, searchQuery = '' }: Too
         {globalView === 'card' ? (
           <motion.div layout className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <AnimatePresence mode="popLayout">
-              {filteredApps.map((app, index) => (
+              {visibleApps.map((app, index) => (
                 <motion.div
                   key={app.id}
                   layout
@@ -91,11 +105,33 @@ export default function ToolsSection({ apps, globalView, searchQuery = '' }: Too
           </motion.div>
         ) : (
           <div className="space-y-3">
-            {filteredApps.map((app, index) => (
+            {visibleApps.map((app, index) => (
               <AppListItem key={app.id} app={app} index={index} />
             ))}
           </div>
         )}
+        
+        {/* Load More / Show Less Buttons */}
+        {filteredApps.length > 6 && (
+          <div className="mt-10 flex justify-center gap-4">
+            {hasMore ? (
+              <button
+                onClick={handleShowMore}
+                className="px-6 py-2.5 rounded-full bg-white border border-stone-200 text-stone-600 text-sm font-medium hover:bg-stone-50 hover:text-stone-900 transition-colors shadow-sm dark:bg-[#1A1A1A] dark:border-stone-800 dark:text-stone-400 dark:hover:text-stone-200 dark:hover:bg-stone-800"
+              >
+                展开更多 ({filteredApps.length - visibleCount})
+              </button>
+            ) : (
+              <button
+                onClick={handleShowLess}
+                className="px-6 py-2.5 rounded-full bg-white border border-stone-200 text-stone-600 text-sm font-medium hover:bg-stone-50 hover:text-stone-900 transition-colors shadow-sm dark:bg-[#1A1A1A] dark:border-stone-800 dark:text-stone-400 dark:hover:text-stone-200 dark:hover:bg-stone-800"
+              >
+                收起列表
+              </button>
+            )}
+          </div>
+        )}
+
         {filteredApps.length === 0 && (
           <div className="mt-10 text-center py-12 border border-dashed border-stone-200 rounded-3xl bg-white/40 text-stone-400 font-light dark:border-stone-700 dark:bg-stone-900/40 dark:text-stone-500">
             未找到匹配结果，试试更换分类或关键词。

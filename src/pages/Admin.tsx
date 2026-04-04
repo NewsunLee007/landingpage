@@ -138,8 +138,7 @@ export default function Admin() {
     
     try {
       if (currentApp.id) {
-        await apiService.updateApp(currentApp.id, currentApp as any);
-        updateApp(currentApp.id, currentApp as AppItem);
+        await updateApp(currentApp.id, currentApp as AppItem);
       } else {
         const newApp = {
           ...currentApp,
@@ -181,19 +180,22 @@ export default function Admin() {
     
     try {
       if (currentArticle.id) {
-        await apiService.updateArticle(currentArticle.id, currentArticle as any);
-        updateArticle(currentArticle.id, currentArticle as Article);
+        await updateArticle(currentArticle.id, currentArticle as Article);
       } else {
+        const now = new Date();
+        // Calculate UTC+8 time by adding 8 hours to current UTC time
+        const localTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
+        const dateStr = localTime.toISOString().split('T')[0];
+        
         const newArticleData = {
           title: currentArticle.title,
           content: currentArticle.content,
           summary: currentArticle.summary || '',
-          date: new Date().toISOString().split('T')[0],
+          date: dateStr,
           imageUrl: currentArticle.imageUrl,
           tags: currentArticle.tags || [],
         };
-        const createdArticle = await apiService.createArticle(newArticleData as any);
-        addArticle(createdArticle as Article);
+        await addArticle(newArticleData as Article);
       }
       setIsEditingArticle(false);
       setCurrentArticle({});

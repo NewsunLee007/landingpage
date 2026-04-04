@@ -8,6 +8,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { apiService } from '../services/api';
 import { Helmet } from 'react-helmet-async';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 export default function ArticleDetail() {
   const { id } = useParams<{ id: string }>();
@@ -192,7 +193,7 @@ export default function ArticleDetail() {
             {isHtmlContent ? (
               <div dangerouslySetInnerHTML={{ __html: article.content }} />
             ) : (
-              <ReactMarkdown>{article.content}</ReactMarkdown>
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{article.content}</ReactMarkdown>
             )}
           </div>
 

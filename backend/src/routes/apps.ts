@@ -16,6 +16,7 @@ type DbAppItem = {
   iconName: string;
   imageUrl: string | null;
   isPrivate: boolean;
+  clicks: number;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -28,7 +29,7 @@ router.get('/', async (req, res) => {
   try {
     logger.info('Fetching all apps');
     const apps = await prisma.appItem.findMany({
-      orderBy: { createdAt: 'desc' }
+      orderBy: [{ clicks: 'desc' }, { updatedAt: 'desc' }]
     });
     logger.info('Apps fetched successfully', { count: apps.length });
     res.json(apps.map((app: any) => ({
@@ -37,6 +38,24 @@ router.get('/', async (req, res) => {
     })));
   } catch (error) {
     logger.error('Get apps error', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+router.patch('/:id/click', async (req, res) => {
+  try {
+    const { id } = req.params;
+    logger.info(`Incrementing click count for app: ${id}`);
+    
+    const app = await prisma.appItem.update({
+      where: { id },
+      data: { clicks: { increment: 1 } }
+    });
+    
+    logger.info(`App click count updated successfully`, { id, newClicks: app.clicks });
+    res.json({ id: app.id, clicks: app.clicks });
+  } catch (error) {
+    logger.error(`Error incrementing click count for app ${req.params.id}:`, error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });

@@ -12,6 +12,8 @@ export interface AppItem {
   iconName: string;
   imageUrl?: string;
   isPrivate?: boolean;
+  clicks?: number;
+  updatedAt?: string;
 }
 
 export interface Article {
@@ -33,6 +35,7 @@ interface StoreState {
   addApp: (app: AppItem) => Promise<void>;
   updateApp: (id: string, app: Partial<AppItem>) => Promise<void>;
   deleteApp: (id: string) => Promise<void>;
+  incrementAppClick: (id: string) => Promise<void>;
   addArticle: (article: Article) => Promise<void>;
   updateArticle: (id: string, article: Partial<Article>) => Promise<void>;
   deleteArticle: (id: string) => Promise<void>;
@@ -210,6 +213,8 @@ function convertApiAppToAppItem(apiApp: ApiAppItem): AppItem {
     iconName: apiApp.iconName,
     imageUrl: apiApp.imageUrl,
     isPrivate: apiApp.isPrivate,
+    clicks: apiApp.clicks,
+    updatedAt: apiApp.updatedAt,
   };
 }
 
@@ -341,6 +346,25 @@ export const useStore = create<StoreState>()(
         set((state) => ({
           apps: state.apps.filter(app => app.id !== id),
         }));
+      },
+
+      incrementAppClick: async (id) => {
+        // Optimistic UI update
+        set((state) => ({
+          apps: state.apps.map((a) =>
+            a.id === id ? { ...a, clicks: (a.clicks || 0) + 1 } : a
+          ),
+        }));
+
+        const { useBackend } = get();
+        if (useBackend) {
+          try {
+            await apiService.incrementAppClick(id);
+          } catch (error) {
+            console.error('Failed to increment app click via API:', error);
+            // Optionally revert optimistic update here
+          }
+        }
       },
 
       addArticle: async (article) => {

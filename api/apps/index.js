@@ -169,13 +169,38 @@ const defaultApps = [
 export default async function handler(req, res) {
   try {
     if (req.method === 'GET') {
-      if (prisma) {
-        try {
-          const apps = await prisma.appItem.findMany();
+        if (prisma) {
+          try {
+            const apps = await prisma.appItem.findMany({
+              orderBy: [{ clicks: 'desc' }, { updatedAt: 'desc' }]
+            });
           res.json(apps.length > 0 ? apps : defaultApps);
         } catch (error) {
           console.error('Error fetching apps:', error);
           res.json(defaultApps);
+        }
+      } else if (req.method === 'PATCH') {
+        const id = req.query.id || req.body.id;
+        const action = req.query.action || req.body.action;
+
+        if (prisma) {
+          if (!id) {
+            return res.status(400).json({ error: 'App ID is required' });
+          }
+
+          if (action === 'click') {
+            const app = await prisma.appItem.update({
+              where: { id },
+              data: {
+                clicks: { increment: 1 }
+              }
+            });
+            res.json(app);
+          } else {
+            return res.status(400).json({ error: 'Invalid action' });
+          }
+        } else {
+          return res.status(503).json({ error: 'Database connection failed' });
         }
       } else {
         res.json(defaultApps);

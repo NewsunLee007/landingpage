@@ -38,12 +38,24 @@ export default function ToolsSection({ apps, globalView, searchQuery = '' }: Too
 
   const filteredApps = useMemo(() => {
     const keyword = searchQuery.trim().toLowerCase();
-    return apps.filter((app) => {
+    const filtered = apps.filter((app) => {
       const mappedCategory = CATEGORY_LABEL_MAP[app.category] || app.category;
       const categoryMatched = activeCategory === '全部工具' || mappedCategory === activeCategory;
       if (!categoryMatched) return false;
       if (!keyword) return true;
       return `${app.title} ${app.description} ${mappedCategory} ${app.tags.join(' ')}`.toLowerCase().includes(keyword);
+    });
+
+    return filtered.sort((a, b) => {
+      const clicksA = a.clicks || 0;
+      const clicksB = b.clicks || 0;
+      if (clicksA !== clicksB) {
+        return clicksB - clicksA;
+      }
+      
+      const dateA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+      const dateB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+      return dateB - dateA;
     });
   }, [apps, activeCategory, searchQuery]);
 

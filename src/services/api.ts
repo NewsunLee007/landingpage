@@ -24,6 +24,7 @@ export interface ApiAppItem {
   iconName: string;
   imageUrl?: string;
   isPrivate?: boolean;
+  clicks?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -227,6 +228,12 @@ class ApiService {
   async likeComment(id: string): Promise<ApiComment> {
     // 直接更新评论的点赞数（后端处理递增逻辑）
     return this.updateComment(id, { likes: 1 });
+  }
+  async incrementAppClick(id: string): Promise<ApiAppItem> {
+    return this.request<ApiAppItem>('/apps', {
+      method: 'PATCH',
+      body: JSON.stringify({ id, action: 'click' }),
+    });
   }
 }
 

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Lock, Sparkles } from 'lucide-react';
 import type { AppItem } from '../../store/useStore';
+import { useStore } from '../../store/useStore';
 import { getAppVisualIconName, IconMap } from './AppCard';
 import PasswordModal from './PasswordModal';
 
@@ -17,18 +18,22 @@ export default function AppListItem({ app, index }: AppListItemProps) {
   const Icon = IconMap[iconName] || Sparkles;
   const [modalOpen, setModalOpen] = useState(false);
   const [modalError, setModalError] = useState('');
+  const incrementAppClick = useStore((state) => state.incrementAppClick);
 
   const handleClick = (e: React.MouseEvent) => {
     if (app.isPrivate) {
       e.preventDefault();
       setModalError('');
       setModalOpen(true);
+    } else {
+      incrementAppClick(app.id);
     }
   };
 
   const handlePasswordSubmit = (password: string) => {
     if (password === PRIVATE_PASSWORD) {
       setModalOpen(false);
+      incrementAppClick(app.id);
       window.open(app.url, '_blank', 'noopener,noreferrer');
     } else {
       setModalError('密码错误，暂无访问权限。');

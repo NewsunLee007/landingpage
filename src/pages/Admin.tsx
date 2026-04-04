@@ -6,7 +6,9 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, Plus, Trash2, Edit2, Save, LogOut } from 'lucide-react';
 import { apiService } from '../services/api';
 import { Helmet } from 'react-helmet-async';
-import { Editor } from '@tinymce/tinymce-react';
+import MDEditor from '@uiw/react-md-editor';
+import TurndownService from 'turndown';
+import { useTheme } from '../hooks/useTheme';
 
 function checkAuth(): boolean {
   return !!localStorage.getItem('newsun_auth_token');
@@ -27,8 +29,8 @@ export default function Admin() {
 
   const [isEditingArticle, setIsEditingArticle] = useState(false);
   const [currentArticle, setCurrentArticle] = useState<Partial<Article>>({});
+  const { theme } = useTheme();
 
-  // Comments state
   const [comments, setComments] = useState<ApiComment[]>([]);
   const [isLoadingComments, setIsLoadingComments] = useState(false);
 
@@ -154,6 +156,24 @@ export default function Admin() {
       console.error('保存应用失败:', error);
       alert('保存失败，请稍后重试');
     }
+  };
+
+  const handleEditArticle = (article: Article) => {
+    // Convert HTML to Markdown for backward compatibility
+    let markdownContent = article.content;
+    if (/<[a-z][\s\S]*>/i.test(article.content)) {
+      const turndownService = new TurndownService({
+        headingStyle: 'atx',
+        codeBlockStyle: 'fenced'
+      });
+      markdownContent = turndownService.turndown(article.content);
+    }
+    
+    setCurrentArticle({
+      ...article,
+      content: markdownContent
+    });
+    setIsEditingArticle(true);
   };
 
   const handleSaveArticle = async () => {
@@ -414,26 +434,17 @@ export default function Admin() {
                     <input type="text" value={currentArticle.imageUrl || ''} onChange={e => setCurrentArticle({...currentArticle, imageUrl: e.target.value})} className="w-full border border-stone-200 rounded-xl px-4 py-2.5 focus:ring-1 focus:ring-[#2A6049] outline-none transition-all dark:bg-stone-800 dark:border-stone-700 dark:text-stone-200 dark:focus:ring-[#4A8069]" placeholder="例如: https://p.ipic.vip/198jan.jpg" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-stone-700 mb-2 dark:text-stone-300">正文内容</label>
-                    <Editor
-                      apiKey="ad467owr660pb8dheyye9lxjwphl44olkg1yyf0k7erg52q0"
-                      value={currentArticle.content || ''}
-                      onEditorChange={(content) => setCurrentArticle({...currentArticle, content})}
-                      init={{
-                        height: 400,
-                        menubar: true,
-                        plugins: [
-                          'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
-                          'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
-                          'insertdatetime', 'media', 'table', 'help', 'wordcount'
-                        ],
-                        toolbar: 'undo redo | blocks | ' +
-                          'bold italic forecolor | alignleft aligncenter ' +
-                          'alignright alignjustify | bullist numlist outdent indent | ' +
-                          'removeformat | help',
-                        content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 16px; }',
-                      }}
-                    />
+                    <label className="block text-sm font-medium text-stone-700 mb-2 dark:text-stone-300">正文内容 (Markdown) *</label>
+                    <div data-color-mode={theme} className="border border-stone-200 rounded-xl overflow-hidden dark:border-stone-700">
+                      <MDEditor
+                        height={500}
+                        value={currentArticle.content || ''}
+                        onChange={(val) => setCurrentArticle({...currentArticle, content: val || ''})}
+                        previewOptions={{
+                          className: 'prose prose-stone dark:prose-invert max-w-none'
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
                 <div className="flex gap-3 justify-end">
@@ -463,7 +474,7 @@ export default function Admin() {
                     )}
                   </div>
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                    <button onClick={() => { setCurrentArticle(article); setIsEditingArticle(true); }} className="p-2.5 text-stone-400 hover:text-[#2A6049] hover:bg-[#E8F0EE] rounded-xl transition-colors dark:text-stone-500 dark:hover:text-[#4A8069] dark:hover:bg-[#1a2e24]">
+                    <button onClick={() => handleEditArticle(article)} className="p-2.5 text-stone-400 hover:text-[#2A6049] hover:bg-[#E8F0EE] rounded-xl transition-colors dark:text-stone-500 dark:hover:text-[#4A8069] dark:hover:bg-[#1a2e24]">
                       <Edit2 className="w-4 h-4" />
                     </button>
                     <button onClick={async () => {

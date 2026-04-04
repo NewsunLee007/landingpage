@@ -36,7 +36,7 @@ export default function Home() {
 
       {/* 内容区域 */}
       <div className="max-w-[90rem] mx-auto px-4 sm:px-6 lg:px-8 pb-24 pt-12">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* 侧边栏：最新文章列表 */}
           <div className="lg:col-span-3 order-2 lg:order-1">
             <div className="sticky top-28 bg-white/80 backdrop-blur-xl rounded-3xl shadow-sm border border-stone-100/60 p-6 dark:bg-[#1A1A1A]/80 dark:border-stone-800/60">

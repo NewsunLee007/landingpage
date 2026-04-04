@@ -27,6 +27,8 @@ export default function ArticleDetail() {
     content: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
   
   const article = articles.find(a => a.id === id);
 
@@ -72,8 +74,12 @@ export default function ArticleDetail() {
         ...newComment
       });
       setNewComment({ author: '', email: '', content: '' });
-      addToast('评论提交成功！等待审核通过后显示', 'success');
+      setSubmitSuccess(true);
       fetchComments();
+      setTimeout(() => {
+        setIsModalOpen(false);
+        setSubmitSuccess(false);
+      }, 2000);
     } catch (error) {
       console.error('Failed to submit comment:', error);
       addToast('评论提交失败，请稍后重试', 'error');
@@ -218,50 +224,117 @@ export default function ArticleDetail() {
               <MessageSquare className="w-5 h-5" /> 评论
             </h3>
 
-            {/* Comment Form */}
-            <div className="bg-stone-50/50 rounded-2xl p-6 mb-10 border border-stone-100 dark:bg-stone-800/50 dark:border-stone-700">
-              <h4 className="text-lg font-medium mb-4 text-stone-700 dark:text-stone-300">留下你的评论</h4>
-              <form onSubmit={handleCommentSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-stone-700 mb-2 dark:text-stone-300">昵称 *</label>
-                    <input
-                      type="text"
-                      value={newComment.author}
-                      onChange={(e) => setNewComment({...newComment, author: e.target.value})}
-                      required
-                      className="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:ring-1 focus:ring-[#2A6049] outline-none transition-all dark:bg-stone-800 dark:border-stone-700 dark:text-stone-200 dark:focus:ring-[#4A8069]"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-stone-700 mb-2 dark:text-stone-300">邮箱 (可选)</label>
-                    <input
-                      type="email"
-                      value={newComment.email}
-                      onChange={(e) => setNewComment({...newComment, email: e.target.value})}
-                      className="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:ring-1 focus:ring-[#2A6049] outline-none transition-all dark:bg-stone-800 dark:border-stone-700 dark:text-stone-200 dark:focus:ring-[#4A8069]"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-stone-700 mb-2 dark:text-stone-300">评论内容 *</label>
-                  <textarea
-                    value={newComment.content}
-                    onChange={(e) => setNewComment({...newComment, content: e.target.value})}
-                    rows={4}
-                    required
-                    className="w-full px-4 py-2.5 rounded-xl border border-stone-200 focus:ring-1 focus:ring-[#2A6049] outline-none transition-all resize-none dark:bg-stone-800 dark:border-stone-700 dark:text-stone-200 dark:focus:ring-[#4A8069]"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-6 py-3 bg-[#2A6049] text-white rounded-xl hover:bg-[#1f4736] font-medium transition-colors shadow-sm dark:bg-[#4A8069] dark:hover:bg-[#3d6d58] disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  {isSubmitting ? '提交中...' : '提交评论'}
-                </button>
-              </form>
+            {/* Comment Form Button */}
+            <div className="mb-10 text-center">
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="px-8 py-3 bg-stone-800 text-white rounded-xl hover:bg-stone-700 font-medium transition-colors shadow-md dark:bg-stone-200 dark:text-stone-900 dark:hover:bg-white"
+              >
+                写评论
+              </button>
             </div>
+
+            {/* Comment Modal */}
+            <AnimatePresence>
+              {isModalOpen && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-stone-900/40 backdrop-blur-sm dark:bg-black/60"
+                  onClick={() => !isSubmitting && !submitSuccess && setIsModalOpen(false)}
+                >
+                  <motion.div
+                    initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                    animate={{ scale: 1, opacity: 1, y: 0 }}
+                    exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                    onClick={(e) => e.stopPropagation()}
+                    className="bg-white rounded-3xl p-6 md:p-8 w-full max-w-xl shadow-2xl dark:bg-[#1A1A1A] border border-stone-100 dark:border-stone-800 relative overflow-hidden"
+                  >
+                    {submitSuccess ? (
+                      <div className="py-12 flex flex-col items-center justify-center text-center">
+                        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-6 dark:bg-green-900/30">
+                          <svg className="w-8 h-8 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                        <h4 className="text-2xl font-bold text-stone-800 mb-2 dark:text-stone-100">提交成功</h4>
+                        <p className="text-stone-500 dark:text-stone-400">评论将在审核通过后显示</p>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex justify-between items-center mb-6">
+                          <h4 className="text-xl font-bold text-stone-800 dark:text-stone-100">留下你的评论</h4>
+                          <button 
+                            onClick={() => setIsModalOpen(false)}
+                            className="text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 transition-colors p-2"
+                            disabled={isSubmitting}
+                          >
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                        <form onSubmit={handleCommentSubmit} className="space-y-5">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <div>
+                              <label className="block text-sm font-medium text-stone-700 mb-2 dark:text-stone-300">昵称 *</label>
+                              <input
+                                type="text"
+                                value={newComment.author}
+                                onChange={(e) => setNewComment({...newComment, author: e.target.value})}
+                                required
+                                disabled={isSubmitting}
+                                className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-[#2A6049]/20 focus:border-[#2A6049] outline-none transition-all dark:bg-stone-800/50 dark:border-stone-700 dark:text-stone-200 dark:focus:ring-[#4A8069]/20 dark:focus:border-[#4A8069]"
+                                placeholder="怎么称呼你"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-stone-700 mb-2 dark:text-stone-300">邮箱 (可选)</label>
+                              <input
+                                type="email"
+                                value={newComment.email}
+                                onChange={(e) => setNewComment({...newComment, email: e.target.value})}
+                                disabled={isSubmitting}
+                                className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-[#2A6049]/20 focus:border-[#2A6049] outline-none transition-all dark:bg-stone-800/50 dark:border-stone-700 dark:text-stone-200 dark:focus:ring-[#4A8069]/20 dark:focus:border-[#4A8069]"
+                                placeholder="用于接收回复通知"
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-stone-700 mb-2 dark:text-stone-300">评论内容 *</label>
+                            <textarea
+                              value={newComment.content}
+                              onChange={(e) => setNewComment({...newComment, content: e.target.value})}
+                              rows={5}
+                              required
+                              disabled={isSubmitting}
+                              className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-[#2A6049]/20 focus:border-[#2A6049] outline-none transition-all resize-none dark:bg-stone-800/50 dark:border-stone-700 dark:text-stone-200 dark:focus:ring-[#4A8069]/20 dark:focus:border-[#4A8069]"
+                              placeholder="写下你的想法..."
+                            />
+                          </div>
+                          <button
+                            type="submit"
+                            disabled={isSubmitting}
+                            className="w-full py-3.5 bg-[#2A6049] text-white rounded-xl hover:bg-[#1f4736] font-medium transition-colors shadow-sm dark:bg-[#4A8069] dark:hover:bg-[#3d6d58] disabled:opacity-60 disabled:cursor-not-allowed flex justify-center items-center"
+                          >
+                            {isSubmitting ? (
+                              <>
+                                <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                提交中...
+                              </>
+                            ) : '发表评论'}
+                          </button>
+                        </form>
+                      </>
+                    )}
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Comments List */}
             <div className="space-y-6">

@@ -207,16 +207,17 @@ class ApiService {
   }
 
   async updateComment(id: string, comment: Partial<Omit<ApiComment, 'id' | 'createdAt' | 'updatedAt'>>): Promise<ApiComment> {
-    return this.request<ApiComment>(`/comments/${id}`, {
+    return this.request<ApiComment>('/comments', {
       method: 'PUT',
-      body: JSON.stringify(comment),
+      body: JSON.stringify({ id, ...comment }),
     });
   }
 
   async deleteComment(id: string): Promise<void> {
     try {
-      return this.request<void>(`/comments/${id}`, {
+      return this.request<void>('/comments', {
         method: 'DELETE',
+        body: JSON.stringify({ id }),
       });
     } catch (error) {
       console.warn('Delete comment failed, but proceeding:', error);

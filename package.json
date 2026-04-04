@@ -14,7 +14,7 @@
     "db:studio": "prisma studio"
   },
   "dependencies": {
-    "@prisma/client": "^6.5.0",
+    "@prisma/client": "^6.4.0",
     "@tailwindcss/typography": "^0.5.19",
     "@tinymce/tinymce-react": "^6.3.0",
     "bcryptjs": "^3.0.2",
@@ -46,7 +46,7 @@
     "globals": "^17.4.0",
     "lucide-react": "^0.577.0",
     "postcss": "^8.5.8",
-    "prisma": "^6.5.0",
+    "prisma": "^6.4.0",
     "tailwind-merge": "^3.5.0",
     "tailwindcss": "^4.2.2",
     "typescript": "~5.9.3",
